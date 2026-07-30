@@ -7,6 +7,16 @@ const STARTER_CARD_IDS = ["langage_cult", "taille_pierre"];
 const STARTER_UNIT_ID = "chasseur_cueilleur";
 const DEFAULT_RESOURCES = { nourriture: 3, production: 0, argent: 0, science: 0, culture: 0 };
 
+// "Récolte du jour": schoolwork completed outside the game converts into resources
+// at the start of a turn. Amounts are a first placeholder for Aiden to calibrate
+// against real class sessions — easy to retune, this is the single source of truth.
+export const HARVEST_TASKS = [
+  { key: "quiz", label: "Quiz du jour", resKey: "science", amount: 3 },
+  { key: "cahier", label: "Travail dans le cahier", resKey: "culture", amount: 2 },
+  { key: "interactif", label: "Travail interactif (i+)", resKey: "argent", amount: 1 },
+  { key: "additionnel", label: "Travail additionnel", resKey: "production", amount: 2 },
+];
+
 export function rowToCiv(row) {
   return {
     id: row.id,
@@ -24,6 +34,7 @@ export function rowToCiv(row) {
     map: row.map,
     journal: row.journal,
     eventState: row.event_state,
+    turnState: row.turn_state || {},
     tutorialSeen: row.tutorial_seen,
     onboarded: row.onboarded,
   };
@@ -85,6 +96,38 @@ export function civViewModel(civ) {
   };
 }
 
+// Once per turn: convert completed schoolwork into starting resources for the turn.
+export async function harvest(civId, completedKeys) {
+  const civ = await getCivById(civId);
+  if (!civ) throw httpError(404, "Civilisation introuvable.");
+  if (!civ.onboarded) throw httpError(400, "Fonde d'abord ta civilisation.");
+  if (civ.turnState.harvestClaimed) throw httpError(400, "La récolte du jour a déjà été réclamée ce tour-ci.");
+  const { rows: classRows } = await pool.query("SELECT turns_unlocked FROM classes WHERE id = $1", [civ.classId]);
+  if (civ.turnNumber > (classRows[0]?.turns_unlocked ?? 1)) {
+    throw httpError(403, "Ce tour n'est pas encore débloqué par ton enseignant. Reviens à la prochaine période de classe !");
+  }
+
+  const validKeys = new Set(HARVEST_TASKS.map((t) => t.key));
+  const chosen = Array.from(new Set((completedKeys || []).filter((k) => validKeys.has(k))));
+  const gains = {};
+  for (const key of chosen) {
+    const task = HARVEST_TASKS.find((t) => t.key === key);
+    gains[task.resKey] = (gains[task.resKey] || 0) + task.amount;
+  }
+
+  const newResources = { ...civ.resources };
+  for (const [resKey, amount] of Object.entries(gains)) {
+    newResources[resKey] = (newResources[resKey] ?? 0) + amount;
+  }
+  const newTurnState = { ...civ.turnState, harvestClaimed: true };
+
+  const { rows } = await pool.query(
+    `UPDATE civilizations SET resources = $2, turn_state = $3, updated_at = now() WHERE id = $1 RETURNING *`,
+    [civId, JSON.stringify(newResources), JSON.stringify(newTurnState)]
+  );
+  return { civ: rowToCiv(rows[0]), gains };
+}
+
 export async function buyCard(civId, cardId) {
   const civ = await getCivById(civId);
   if (!civ) throw httpError(404, "Civilisation introuvable.");
@@ -116,15 +159,17 @@ export async function buyCard(civId, cardId) {
 export async function produce(civId, { kind, id, tileIndex }) {
   const civ = await getCivById(civId);
   if (!civ) throw httpError(404, "Civilisation introuvable.");
+  if (civ.turnState.producedThisTurn) throw httpError(400, "Une seule production par tour.");
   const { unlockedUnits, unlockedDistricts } = unlockedContent(civ.ownedCards);
+  const newTurnState = { ...civ.turnState, producedThisTurn: true };
 
   if (kind === "unit") {
     const unit = unlockedUnits.find((u) => u.id === id);
-    if (!unit) throw httpError(400, "Cette unité n'a pas encore été découverte.");
+    if (!unit) throw httpError(400, "Ce citoyen n'a pas encore été découvert.");
     const tile = civ.map[tileIndex];
     if (!tile) throw httpError(400, "Tuile invalide.");
     if (!tile.units.length && !unit.isStarter) {
-      throw httpError(400, "Une nouvelle unité doit être produite sur une tuile déjà occupée par votre civilisation.");
+      throw httpError(400, "Un nouveau citoyen doit être produit sur une tuile déjà occupée par votre civilisation.");
     }
     const copiesOwned = civ.map.reduce((n, t) => n + t.units.filter((u) => u.type === id).length, 0);
     const cost = unitCopyCost(unit, copiesOwned);
@@ -135,8 +180,8 @@ export async function produce(civId, { kind, id, tileIndex }) {
     );
     const newResources = { ...civ.resources, nourriture: civ.resources.nourriture - cost };
     const { rows } = await pool.query(
-      `UPDATE civilizations SET resources = $2, map = $3, updated_at = now() WHERE id = $1 RETURNING *`,
-      [civId, JSON.stringify(newResources), JSON.stringify(newMap)]
+      `UPDATE civilizations SET resources = $2, map = $3, turn_state = $4, updated_at = now() WHERE id = $1 RETURNING *`,
+      [civId, JSON.stringify(newResources), JSON.stringify(newMap), JSON.stringify(newTurnState)]
     );
     return rowToCiv(rows[0]);
   }
@@ -151,8 +196,8 @@ export async function produce(civId, { kind, id, tileIndex }) {
     const newResources = { ...civ.resources, production: civ.resources.production - cost };
     const newBuilt = [...civ.builtDistricts, id];
     const { rows } = await pool.query(
-      `UPDATE civilizations SET resources = $2, built_districts = $3, updated_at = now() WHERE id = $1 RETURNING *`,
-      [civId, JSON.stringify(newResources), JSON.stringify(newBuilt)]
+      `UPDATE civilizations SET resources = $2, built_districts = $3, turn_state = $4, updated_at = now() WHERE id = $1 RETURNING *`,
+      [civId, JSON.stringify(newResources), JSON.stringify(newBuilt), JSON.stringify(newTurnState)]
     );
     return rowToCiv(rows[0]);
   }

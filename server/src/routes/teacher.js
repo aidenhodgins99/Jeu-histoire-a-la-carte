@@ -16,9 +16,10 @@ router.use(requireTeacherSession);
 
 router.get("/class", async (req, res, next) => {
   try {
-    const { rows: classRows } = await pool.query("SELECT id, name, join_code FROM classes WHERE id = $1", [
-      req.classId,
-    ]);
+    const { rows: classRows } = await pool.query(
+      "SELECT id, name, join_code, turns_unlocked FROM classes WHERE id = $1",
+      [req.classId]
+    );
     if (!classRows[0]) throw httpError(404, "Classe introuvable.");
     const { rows } = await pool.query(
       `SELECT id, student_name, civ_name, turn_number, resources, bonheur_index, onboarded
@@ -26,6 +27,26 @@ router.get("/class", async (req, res, next) => {
       [req.classId]
     );
     res.json({ class: classRows[0], roster: rows });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Turn-pacing control: how many turns the whole class may currently play.
+// Defaults to effectively unlimited (999999) when a class is created, so this
+// only restricts pacing once a teacher deliberately sets a lower value.
+router.post("/class/turns-unlocked", async (req, res, next) => {
+  try {
+    const turnsUnlocked = Number(req.body?.turnsUnlocked);
+    if (!Number.isInteger(turnsUnlocked) || turnsUnlocked < 1) {
+      throw httpError(400, "Nombre de tours débloqués invalide.");
+    }
+    const { rows } = await pool.query(
+      "UPDATE classes SET turns_unlocked = $2 WHERE id = $1 RETURNING id, name, turns_unlocked",
+      [req.classId, turnsUnlocked]
+    );
+    if (!rows[0]) throw httpError(404, "Classe introuvable.");
+    res.json({ class: rows[0] });
   } catch (err) {
     next(err);
   }

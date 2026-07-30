@@ -9,6 +9,8 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CARTES_DIR = path.join(__dirname, "..", "..", "cartes");
+const IMAGES_DIR = path.join(CARTES_DIR, "images");
+const IMG_EXTS = new Set([".jpg", ".jpeg", ".png", ".webp"]);
 
 export function slugify(s) {
   return String(s || "")
@@ -18,6 +20,40 @@ export function slugify(s) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "");
+}
+
+// Same normalization the print pipeline (card-generator/generate_cards.js) uses,
+// so a file dropped in cartes/images/ named after a card's title or id is picked
+// up automatically here too — one image, both the printed card and the live game.
+function normalizeImageKey(s) {
+  return String(s || "")
+    .replace(/['’ʼ]/g, "")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+let imageIndex = null;
+function buildImageIndex() {
+  const idx = new Map();
+  if (!fs.existsSync(IMAGES_DIR)) return idx;
+  for (const f of fs.readdirSync(IMAGES_DIR)) {
+    const ext = path.extname(f).toLowerCase();
+    if (!IMG_EXTS.has(ext)) continue;
+    idx.set(normalizeImageKey(path.basename(f, ext)), f);
+  }
+  return idx;
+}
+
+function findImageUrl(...candidates) {
+  if (!imageIndex) imageIndex = buildImageIndex();
+  for (const c of candidates) {
+    const file = imageIndex.get(normalizeImageKey(c));
+    if (file) return `/images/${encodeURIComponent(file)}`;
+  }
+  return null;
 }
 
 function readCsv(filename) {
@@ -57,6 +93,7 @@ export function loadContent({ force = false } = {}) {
     description: r["Description_historique"],
     unlocks: r["Débloque"],
     source: r["Source"],
+    imageUrl: findImageUrl(r.ID, r.Titre),
   }));
 
   const cultureCards = readCsv("Arbre_Culturel_Era1.csv").map((r) => ({
@@ -70,6 +107,7 @@ export function loadContent({ force = false } = {}) {
     description: r["Description_historique"],
     unlocks: r["Débloque"],
     source: r["Source"],
+    imageUrl: findImageUrl(r.ID, r.Titre),
   }));
 
   const units = readCsv("Unites_Era1.csv").map((r) => ({
@@ -84,6 +122,7 @@ export function loadContent({ force = false } = {}) {
     description: r["Description_historique"],
     evolvesTo: r["Évolue_vers"],
     source: r["Source"],
+    imageUrl: findImageUrl(r.Titre),
   }));
 
   const districts = readCsv("Districts_Batiments.csv").map((r) => ({
@@ -96,6 +135,7 @@ export function loadContent({ force = false } = {}) {
     effect: r.Effet,
     minSettlementTier: r["Palier_établissement_minimum"],
     era: r["Ère_de_déblocage"],
+    imageUrl: findImageUrl(r.Nom),
   }));
 
   const territoireRows = readCsv("Territoire.csv").filter(
@@ -106,6 +146,7 @@ export function loadContent({ force = false } = {}) {
     id: slugify(r.Nom),
     title: r.Nom,
     description: r.Description,
+    imageUrl: findImageUrl(r.Image_clé, r.Nom),
   }));
 
   const historicalEvents = readCsv("Cartes_Historiques_Era1.csv").map((r) => ({

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { pool } from "../db.js";
-import { getCivById, onboardCiv, civViewModel, buyCard, produce, httpError, rowToCiv } from "../civ.js";
+import { getCivById, onboardCiv, civViewModel, buyCard, produce, harvest, HARVEST_TASKS, httpError, rowToCiv } from "../civ.js";
 import { availableActions, runUnitAction } from "../actions.js";
 import { scriptedEventForTurn } from "../events.js";
 import { yearForTurn, epochForYear, formatYear } from "../turns.js";
@@ -74,8 +74,9 @@ router.get("/me/units/:tileIndex/:unitId/actions", async (req, res, next) => {
     const tile = civ.map[req.params.tileIndex];
     if (!tile) throw httpError(404, "Tuile introuvable.");
     const unit = tile.units.find((u) => u.id === req.params.unitId);
-    if (!unit) throw httpError(404, "Unité introuvable.");
-    res.json({ actions: availableActions(unit.type) });
+    if (!unit) throw httpError(404, "Citoyen introuvable.");
+    const alreadyActed = (civ.turnState.actedUnitIds || []).includes(unit.id);
+    res.json({ actions: alreadyActed ? [] : availableActions(civ, unit.type, tile), alreadyActed });
   } catch (err) {
     next(err);
   }
@@ -87,11 +88,26 @@ router.post("/me/units/action", async (req, res, next) => {
     if (!civ) throw httpError(404, "Civilisation introuvable.");
     const { tileIndex, unitId, actionKey, targetIndex } = req.body || {};
     const result = runUnitAction({ civ, tileIndex, unitId, actionKey, targetIndex });
+    const newTurnState = { ...civ.turnState, actedUnitIds: [...(civ.turnState.actedUnitIds || []), result.actedUnitId] };
     const { rows } = await pool.query(
-      "UPDATE civilizations SET map = $2, resources = $3, updated_at = now() WHERE id = $1 RETURNING *",
-      [req.civId, JSON.stringify(result.map), JSON.stringify(result.resources)]
+      "UPDATE civilizations SET map = $2, resources = $3, turn_state = $4, updated_at = now() WHERE id = $1 RETURNING *",
+      [req.civId, JSON.stringify(result.map), JSON.stringify(result.resources), JSON.stringify(newTurnState)]
     );
     res.json(civViewModel(rowToCiv(rows[0])));
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get("/me/harvest-tasks", (req, res) => {
+  res.json({ tasks: HARVEST_TASKS });
+});
+
+router.post("/me/harvest", async (req, res, next) => {
+  try {
+    const { completed } = req.body || {};
+    const { civ, gains } = await harvest(req.civId, completed);
+    res.json({ ...civViewModel(civ), gains });
   } catch (err) {
     next(err);
   }
@@ -101,6 +117,8 @@ router.get("/me/turn", async (req, res, next) => {
   try {
     const civ = await getCivById(req.civId);
     if (!civ) throw httpError(404, "Civilisation introuvable.");
+    const { rows: classRows } = await pool.query("SELECT turns_unlocked FROM classes WHERE id = $1", [civ.classId]);
+    const turnsUnlocked = classRows[0]?.turns_unlocked ?? 1;
     const year = yearForTurn(civ.turnNumber);
     res.json({
       turnNumber: civ.turnNumber,
@@ -108,6 +126,9 @@ router.get("/me/turn", async (req, res, next) => {
       yearLabel: formatYear(year),
       epoch: epochForYear(year),
       event: scriptedEventForTurn(civ.turnNumber),
+      turnsUnlocked,
+      canPlay: civ.turnNumber <= turnsUnlocked,
+      harvestClaimed: !!civ.turnState.harvestClaimed,
     });
   } catch (err) {
     next(err);
@@ -161,7 +182,7 @@ router.post("/me/turn/advance", async (req, res, next) => {
 
     const { rows } = await pool.query(
       `UPDATE civilizations SET
-         turn_number = turn_number + 1, resources = $2, bonheur_index = $3, journal = $4, updated_at = now()
+         turn_number = turn_number + 1, resources = $2, bonheur_index = $3, journal = $4, turn_state = '{}', updated_at = now()
        WHERE id = $1 RETURNING *`,
       [req.civId, JSON.stringify(newResources), newBonheur, JSON.stringify(newJournal)]
     );

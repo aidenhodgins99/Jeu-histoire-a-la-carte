@@ -1,19 +1,22 @@
 // The 3x3 map mirrors the physical 9-pocket card-sleeve page: index 0-8,
 // left-to-right then top-to-bottom, center (index 4) is tile 5 of the sleeve.
-// Starting layout is a small Croissant-fertile-style spread of biomes around
-// a central Territoire forestier, per the design brief.
+// Starting layout follows a plausible geography rather than a random spread:
+// mountains (upland source region) along the top with toundra between them,
+// a river running south from the mountains past the forest, plains filling
+// the lowlands, and the coast at the southern edge where the river would
+// plausibly reach the sea — deliberately not placed in the middle of the map.
 export const CENTER_INDEX = 4;
 
 const STARTING_LAYOUT = [
-  "territoire_de_plaine",
+  "territoire_montagneux",
   "territoire_de_toundra",
-  "territoire_cotier_ou_fluvial",
-  "territoire_de_plaine",
+  "territoire_montagneux",
+  "territoire_fluvial",
   "territoire_forestier",
   "territoire_de_plaine",
-  "territoire_montagneux",
   "territoire_de_plaine",
-  "territoire_de_toundra",
+  "territoire_cotier",
+  "territoire_de_plaine",
 ];
 
 export function generateStartingMap({ starterUnitId }) {

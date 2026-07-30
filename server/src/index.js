@@ -15,6 +15,7 @@ const app = express();
 app.use(express.json());
 app.use(cookieParser(process.env.COOKIE_SECRET));
 app.use(express.static(path.join(__dirname, "..", "public")));
+app.use("/images", express.static(path.join(__dirname, "..", "..", "cartes", "images")));
 
 app.get("/api/health", (req, res) => {
   const content = loadContent();

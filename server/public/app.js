@@ -9,12 +9,16 @@
   const MOODS = ["😡", "🙁", "😐", "🙂", "😄"];
   const MOOD_LABELS = ["Révolte", "Mécontent", "Neutre", "Content", "Âge d'or"];
   const STEP_LABELS = ["Choisir une carte", "Production de l'établissement", "Actions des citoyens", "Carte historique", "Résumé"];
+  // Icons are only ever a fallback for a terrain/citizen without a real photo yet.
+  // Plaine deliberately avoids anything wheat/crop-shaped — agriculture doesn't
+  // exist yet at game start, a stalk-of-grain icon would be historically backwards.
   const TERRAIN_META = {
     territoire_forestier: { ic: "🌲", label: "Forêt", color: "#3f5a3d" },
-    territoire_de_plaine: { ic: "🌾", label: "Plaine", color: "#8a7a3a" },
+    territoire_de_plaine: { ic: "🐾", label: "Plaine", color: "#8a7a4a" },
     territoire_de_toundra: { ic: "❄️", label: "Toundra", color: "#7791a1" },
     territoire_montagneux: { ic: "⛰️", label: "Montagne", color: "#6b6157" },
-    territoire_cotier_ou_fluvial: { ic: "🌊", label: "Côtier / fluvial", color: "#396a83" },
+    territoire_fluvial: { ic: "🏞️", label: "Rivière", color: "#3d6c85" },
+    territoire_cotier: { ic: "🌊", label: "Côte", color: "#2f6e8a" },
     territoire_agricole: { ic: "🌱", label: "Territoire agricole", color: "#6c8a3f" },
     territoire_urbain: { ic: "🏘️", label: "Territoire urbain", color: "#7a6a52" },
   };
@@ -45,15 +49,38 @@
   }
 
   // ---------------- App state ----------------
-  let vm = null; // last civViewModel from the server: { civ, content, discoverableCards, unlockedUnits, unlockedDistricts, ownedCardDetails, className? }
-  let screen = "loading"; // loading | join | onboard | home | wizard | journal | library
+  let vm = null; // last civViewModel from the server
+  let screen = "loading"; // loading | join | onboard | home | harvest | wizard | journal | library
   let step = 1;
   let wizard = { actedUnitIds: new Set(), selectedTileIndex: null, selectedUnitId: null, moveMode: false, eventChoiceKey: null, eventText: "", producedThisTurn: false };
   let turnInfo = null;
   let joinError = "";
   let onboardError = "";
+  let harvestTasks = null;
+  let harvestChecked = new Set();
+  let pendingCardReveal = null; // a just-bought card, shown once before returning to the grid
 
   function resKey(cardType) { return cardType === "science" ? "science" : "culture"; }
+
+  // Renders a real photo when available, otherwise falls back to an emoji —
+  // used for cards, map tiles and citizen tokens alike.
+  function imgOrEmoji(imageUrl, emoji, altLabel) {
+    return imageUrl
+      ? `<img src="${imageUrl}" alt="${altLabel || ""}" loading="lazy" />`
+      : `<span>${emoji}</span>`;
+  }
+
+  function territoireMap() {
+    const map = {};
+    for (const t of vm.content.territoires) map[t.id] = t;
+    return map;
+  }
+
+  function unitMap() {
+    const map = {};
+    for (const u of vm.unlockedUnits) map[u.id] = u;
+    return map;
+  }
 
   function hud(bumpKey) {
     const chips = Object.entries(RES_META).map(([key, m]) => {
@@ -93,9 +120,9 @@
 
   function tradingCard(card, { locked = false, selected = false, owned = false, lockMsg = "" } = {}) {
     const type = card.type || "culture";
-    const icon = card.type === "science" ? "🔬" : "🎭";
+    const fallbackIcon = card.type === "science" ? "🔬" : "🎭";
     return `<button class="trading-card ${selected ? "selected" : ""} ${locked ? "locked" : ""} ${owned ? "owned" : ""}" data-id="${card.id}" ${locked || owned ? "disabled" : ""}>
-      <div class="tc-frame ${type}"><span>${icon}</span></div>
+      <div class="tc-frame ${type}">${imgOrEmoji(card.imageUrl, fallbackIcon, card.title)}</div>
       <div class="tc-body">
         <span class="tc-type">${card.type === "science" ? "Carte scientifique" : "Carte culturelle"}</span>
         <span class="tc-title">${card.title}</span>
@@ -182,7 +209,7 @@
   // ---------------- Tutorial overlay ----------------
   function showTutorial(onClose) {
     const items = [
-      { ic: "🌾", t: "Nourriture (N)", d: "Sert à faire naître de nouveaux citoyens (unités)." },
+      { ic: "🌾", t: "Nourriture (N)", d: "Sert à faire naître de nouveaux citoyens." },
       { ic: "🔨", t: "Production (P)", d: "Sert à construire des quartiers et des bâtiments." },
       { ic: "🪙", t: "Argent (A)", d: "Sert à acheter certaines cartes spéciales." },
       { ic: "🔬", t: "Science (S)", d: "Sert à faire des découvertes scientifiques." },
@@ -208,6 +235,9 @@
   async function renderHome() {
     if (!turnInfo) turnInfo = await api("/api/civ/me/turn");
     const govCard = vm.ownedCardDetails.find((c) => c.id === "chefferie" || c.id === "vie_tribale");
+    const playButton = turnInfo.canPlay
+      ? '<button class="btn btn-primary" id="btnStart">▶ Jouer mon tour</button>'
+      : `<div class="locked-note"><span class="lic">⏳</span>Ce tour n'est pas encore débloqué par ton enseignant.<br/>Reviens à la prochaine période de classe !</div>`;
     appEl.innerHTML = `<div class="awz-stage">
       <div class="awz-home-head">
         <h1>${vm.civ.civName}</h1>
@@ -215,7 +245,7 @@
       </div>
       <p class="awz-sub">Langue : ${vm.civ.languageName} &middot; ${turnInfo.yearLabel}</p>
       ${hud()}
-      <button class="btn btn-primary" id="btnStart">▶ Jouer mon tour</button>
+      ${playButton}
       <div class="awz-links">
         <button class="btn btn-secondary" id="btnJournal">📖 Journal de bord</button>
         <button class="btn btn-secondary" id="btnLibrary">🗂️ Ma bibliothèque de cartes</button>
@@ -225,10 +255,15 @@
       </div>
       ${govCard ? `<div class="awz-note">Gouvernance actuelle : <b>${govCard.title}</b></div>` : ""}
     </div>`;
-    document.getElementById("btnStart").onclick = () => {
-      step = 1;
+    const startBtn = document.getElementById("btnStart");
+    if (startBtn) startBtn.onclick = async () => {
       wizard = { actedUnitIds: new Set(), selectedTileIndex: null, selectedUnitId: null, moveMode: false, eventChoiceKey: null, eventText: "", producedThisTurn: false };
-      screen = "wizard";
+      if (turnInfo.harvestClaimed) {
+        step = 1;
+        screen = "wizard";
+      } else {
+        screen = "harvest";
+      }
       render();
     };
     document.getElementById("btnJournal").onclick = () => { screen = "journal"; render(); };
@@ -236,8 +271,70 @@
     document.getElementById("btnTutorial").onclick = () => showTutorial();
   }
 
+  // ---------------- Récolte du jour ----------------
+  async function renderHarvest() {
+    if (!harvestTasks) {
+      const res = await api("/api/civ/me/harvest-tasks");
+      harvestTasks = res.tasks;
+    }
+    const itemsHtml = harvestTasks.map((t) => {
+      const checked = harvestChecked.has(t.key);
+      return `<button class="harvest-item ${checked ? "checked" : ""}" data-key="${t.key}">
+        <span class="hcheck">${checked ? "✓" : ""}</span>
+        <span class="hlabel">${t.label}</span>
+        <span class="chip ${t.resKey}"><span class="ic">${RES_META[t.resKey].ic}</span>+${t.amount}</span>
+      </button>`;
+    }).join("");
+    appEl.innerHTML = `<div class="awz-stage">
+      <div class="step-eyebrow">Avant de commencer</div>
+      <h2 class="step-title">Récolte du jour</h2>
+      <p class="step-help">Coche le travail que tu as complété depuis le dernier tour — chaque tâche rapporte des points à ta civilisation.</p>
+      <div class="harvest-list">${itemsHtml}</div>
+      <button class="btn btn-primary" id="btnHarvest">🌾 Récolter</button>
+    </div>`;
+    appEl.querySelectorAll(".harvest-item").forEach((btn) => {
+      btn.onclick = () => {
+        const key = btn.dataset.key;
+        if (harvestChecked.has(key)) harvestChecked.delete(key); else harvestChecked.add(key);
+        renderHarvest();
+      };
+    });
+    document.getElementById("btnHarvest").onclick = async () => {
+      try {
+        const result = await api("/api/civ/me/harvest", { method: "POST", body: { completed: Array.from(harvestChecked) } });
+        vm = { ...vm, civ: result.civ, discoverableCards: result.discoverableCards, unlockedUnits: result.unlockedUnits, unlockedDistricts: result.unlockedDistricts, ownedCardDetails: result.ownedCardDetails, content: result.content };
+        turnInfo = { ...turnInfo, harvestClaimed: true };
+        renderHarvestReveal(result.gains);
+      } catch (e) {
+        toast(e.message);
+      }
+    };
+  }
+
+  function renderHarvestReveal(gains) {
+    const entries = Object.entries(gains || {});
+    const summary = entries.length
+      ? entries.map(([k, v]) => `<div class="reveal-amount">+${v} <span style="font-size:20px;">${RES_META[k].ic}</span> ${RES_META[k].label}</div>`).join("")
+      : `<p class="reveal-label">Aucune tâche cochée — la récolte de ce tour est vide.</p>`;
+    appEl.innerHTML = `<div class="awz-stage">
+      <div class="reveal-card">
+        <span class="reveal-icon">🌾</span>
+        <div class="reveal-title">Récolte du jour</div>
+        ${summary}
+      </div>
+      <button class="btn btn-primary" id="btnRevealNext">Continuer vers mon tour ▶</button>
+    </div>`;
+    document.getElementById("btnRevealNext").onclick = () => {
+      harvestChecked = new Set();
+      step = 1;
+      screen = "wizard";
+      render();
+    };
+  }
+
   // ---------------- Wizard step 1: choisir une carte ----------------
   function renderStep1(bumpKey) {
+    if (pendingCardReveal) return renderCardReveal();
     const cardsHtml = vm.discoverableCards.map((c) => {
       const bal = vm.civ.resources[resKey(c.type)] ?? 0;
       const cost = c.cost ?? 0;
@@ -247,7 +344,7 @@
     const inner = `
       <div class="step-eyebrow">Étape 1 / 5</div>
       <h2 class="step-title">Choisir une carte</h2>
-      <p class="step-help">Voici les cartes que tu peux découvrir maintenant. Chaque achat est immédiat et définitif — les points sont déduits tout de suite. Tu peux aussi n'en choisir aucune.</p>
+      <p class="step-help">Voici les cartes mystères que tu peux découvrir maintenant. Chaque achat est immédiat et définitif — les points sont déduits tout de suite. Tu peux aussi n'en choisir aucune.</p>
       <div class="trading-grid">${cardsHtml || '<p class="awz-sub">Aucune carte à découvrir pour le moment.</p>'}</div>
       ${navRow(true, "Continuer ▶")}
     `;
@@ -257,8 +354,8 @@
         try {
           vm = await api(`/api/civ/me/cards/${encodeURIComponent(btn.dataset.id)}/buy`, { method: "POST" });
           const card = vm.ownedCardDetails.find((c) => c.id === btn.dataset.id);
-          toast(`« ${card.title} » découverte !`);
-          renderStep1(resKey(card.type));
+          pendingCardReveal = card;
+          renderCardReveal();
         } catch (e) {
           toast(e.message);
         }
@@ -267,15 +364,37 @@
     wireNav(() => { screen = "home"; render(); }, () => { step = 2; render(); });
   }
 
+  // Duolingo-style reveal: a freshly discovered card gets its own moment before
+  // rejoining the grid, so students actually read the description and effects.
+  function renderCardReveal() {
+    const card = pendingCardReveal;
+    const fallbackIcon = card.type === "science" ? "🔬" : "🎭";
+    appEl.innerHTML = `<div class="awz-stage">
+      <div class="reveal-card special">
+        <span class="reveal-badge">✨ Nouvelle découverte</span>
+        ${card.imageUrl ? `<img class="reveal-img" src="${card.imageUrl}" alt="${card.title}" />` : `<span class="reveal-icon">${fallbackIcon}</span>`}
+        <div class="reveal-title">${card.title}</div>
+        <p class="reveal-desc">${card.description || ""}</p>
+        ${card.unlocks ? `<p class="reveal-desc"><b>Débloque :</b> ${card.unlocks}</p>` : ""}
+      </div>
+      <button class="btn btn-primary" id="btnRevealNext">Continuer ▶</button>
+    </div>`;
+    document.getElementById("btnRevealNext").onclick = () => {
+      pendingCardReveal = null;
+      renderStep1();
+    };
+  }
+
   // ---------------- Wizard step 2: production ----------------
   function renderStep2(bumpKey) {
+    const uMap = unitMap();
     const unitOpts = vm.unlockedUnits.map((u) => ({
       kind: "unit", id: u.id, label: u.title, effet: (u.actions || []).join(", "),
-      cost: u.isStarter ? 0 : (u.costFirst ?? 0), resKey: "nourriture",
+      cost: u.isStarter ? 0 : (u.costFirst ?? 0), resKey: "nourriture", imageUrl: u.imageUrl,
     }));
     const districtOpts = vm.unlockedDistricts
       .filter((d) => !vm.civ.builtDistricts.includes(d.id))
-      .map((d) => ({ kind: "district", id: d.id, label: `${d.title} (${d.kind})`, effet: d.effect, cost: d.costProduction ?? 0, resKey: "production" }));
+      .map((d) => ({ kind: "district", id: d.id, label: `${d.title} (${d.kind})`, effet: d.effect, cost: d.costProduction ?? 0, resKey: "production", imageUrl: d.imageUrl }));
     const options = [...unitOpts, ...districtOpts];
     const bal = { nourriture: vm.civ.resources.nourriture, production: vm.civ.resources.production };
     const done = wizard.producedThisTurn;
@@ -318,42 +437,46 @@
     return api(`/api/civ/me/units/${tileIndex}/${unitId}/actions`);
   }
 
-  function renderMap(interactive) {
+  function renderMap() {
+    const tMap = territoireMap();
+    const uMap = unitMap();
     const tiles = vm.civ.map.map((tile) => {
       const meta = TERRAIN_META[tile.terrainId] || { ic: "❔", label: tile.terrainId, color: "#888" };
-      const isTarget = wizard.moveMode && wizard.selectedTileIndex !== tile.index;
+      const territoire = tMap[tile.terrainId];
+      const bgStyle = territoire?.imageUrl ? `background-image:url('${territoire.imageUrl}');` : `background-color:${meta.color};`;
       const units = tile.units.map((u) => {
         const selected = wizard.selectedUnitId === u.id;
-        const acted = wizard.actedUnitIds.has(u.id);
-        return `<div class="unit-token ${selected ? "selected" : ""}" data-unit="${u.id}" data-tile="${tile.index}" title="${u.type}${acted ? " (a agi)" : ""}">${UNIT_ICONS[u.type] || "👤"}</div>`;
+        const acted = wizard.actedUnitIds.has(u.id) || (vm.civ.turnState.actedUnitIds || []).includes(u.id);
+        const unitDef = uMap[u.type];
+        const img = unitDef?.imageUrl ? `background-image:url('${unitDef.imageUrl}');` : "";
+        return `<div class="unit-token ${selected ? "selected" : ""}" style="${img}" data-unit="${u.id}" data-tile="${tile.index}" title="${u.type}${acted ? " (a agi)" : ""}">${unitDef?.imageUrl ? "" : (UNIT_ICONS[u.type] || "👤")}</div>`;
       }).join("");
-      return `<div class="map-tile ${wizard.selectedTileIndex === tile.index ? "has-selected-unit" : ""}" style="background-color:${meta.color};" data-tile="${tile.index}">
+      return `<div class="map-tile ${wizard.selectedTileIndex === tile.index ? "has-selected-unit" : ""}" style="${bgStyle}" data-tile="${tile.index}">
         <div class="tile-units">${units}</div>
-        <span class="tile-label">${meta.ic} ${meta.label}${tile.hasTanningSite ? " · 🪢" : ""}</span>
+        <span class="tile-label">${territoire?.imageUrl ? "" : meta.ic + " "}${meta.label}${tile.hasTanningSite ? " · 🪢" : ""}</span>
       </div>`;
     }).join("");
     return `<div class="map-grid">${tiles}</div>`;
   }
 
   async function renderStep3(bumpKey) {
-    const allUnits = vm.civ.map.flatMap((t) => t.units);
-    const allActed = allUnits.length > 0 && allUnits.every((u) => wizard.actedUnitIds.has(u.id));
-
     let actionsPanel = "";
     if (wizard.selectedUnitId != null) {
       if (wizard.moveMode) {
         actionsPanel = `<p class="step-help">Touche une tuile adjacente sur la carte pour t'y déplacer.</p>`;
       } else {
         const actions = await loadUnitActions(wizard.selectedTileIndex, wizard.selectedUnitId);
-        actionsPanel = `<div class="unit-row acted"><div class="unit-actions">${actions.actions.map((a) => `<button class="btn btn-secondary" data-action="${a.key}">${a.label}</button>`).join("")}</div></div>`;
+        actionsPanel = actions.actions.length
+          ? `<div class="unit-row acted"><div class="unit-actions">${actions.actions.map((a) => `<button class="btn btn-secondary" data-action="${a.key}">${a.label}</button>`).join("")}</div></div>`
+          : `<p class="step-help">Ce citoyen a déjà agi ce tour-ci.</p>`;
       }
     }
 
     const inner = `
       <div class="step-eyebrow">Étape 3 / 5</div>
       <h2 class="step-title">Actions des citoyens</h2>
-      <p class="step-help">Touche un citoyen sur la carte, puis choisis son action. Chaque citoyen peut agir une fois ce tour.</p>
-      ${renderMap(true)}
+      <p class="step-help">Touche un citoyen sur la carte, puis choisis son action. Chaque citoyen peut agir une seule fois par tour.</p>
+      ${renderMap()}
       ${actionsPanel}
       ${navRow(true, "Continuer ▶", true)}
     `;
@@ -388,7 +511,6 @@
         try {
           vm = await api("/api/civ/me/units/action", { method: "POST", body: { tileIndex: wizard.selectedTileIndex, unitId: wizard.selectedUnitId, actionKey: btn.dataset.action } });
           wizard.actedUnitIds.add(wizard.selectedUnitId);
-          const acted = wizard.selectedUnitId;
           wizard.selectedUnitId = null;
           wizard.selectedTileIndex = null;
           toast("Action effectuée ✅");
@@ -505,6 +627,7 @@
     if (screen === "onboard") return renderOnboard();
     if (screen === "journal") return renderJournal();
     if (screen === "library") return renderLibrary();
+    if (screen === "harvest") return renderHarvest();
     if (screen === "home") {
       await renderHome();
       if (!vm.civ.tutorialSeen) {

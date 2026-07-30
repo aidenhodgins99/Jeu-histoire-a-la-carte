@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS classes (
   name TEXT NOT NULL,
   join_code TEXT UNIQUE NOT NULL,
   teacher_passcode_hash TEXT NOT NULL,
+  turns_unlocked INTEGER NOT NULL DEFAULT 999999, -- unrestricted by default; a teacher opts INTO pacing a class
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -37,12 +38,17 @@ CREATE TABLE IF NOT EXISTS civilizations (
   map JSONB NOT NULL DEFAULT '[]',
   journal JSONB NOT NULL DEFAULT '[]',
   event_state JSONB NOT NULL DEFAULT '{}',
+  turn_state JSONB NOT NULL DEFAULT '{}',
   tutorial_seen BOOLEAN NOT NULL DEFAULT false,
   onboarded BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(class_id, student_name)
 );
+
+-- Additive migrations for columns introduced after the tables first shipped.
+ALTER TABLE classes ADD COLUMN IF NOT EXISTS turns_unlocked INTEGER NOT NULL DEFAULT 999999;
+ALTER TABLE civilizations ADD COLUMN IF NOT EXISTS turn_state JSONB NOT NULL DEFAULT '{}';
 `;
 
 export async function initSchema() {
