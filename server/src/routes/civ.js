@@ -4,6 +4,7 @@ import { getCivById, onboardCiv, civViewModel, buyCard, produce, harvest, HARVES
 import { availableActions, runUnitAction } from "../actions.js";
 import { scriptedEventForTurn } from "../events.js";
 import { yearForTurn, epochForYear, formatYear } from "../turns.js";
+import { loadContent } from "../content.js";
 
 const router = Router();
 
@@ -93,7 +94,7 @@ router.post("/me/units/action", async (req, res, next) => {
       "UPDATE civilizations SET map = $2, resources = $3, turn_state = $4, updated_at = now() WHERE id = $1 RETURNING *",
       [req.civId, JSON.stringify(result.map), JSON.stringify(result.resources), JSON.stringify(newTurnState)]
     );
-    res.json(civViewModel(rowToCiv(rows[0])));
+    res.json({ ...civViewModel(rowToCiv(rows[0])), resourceBonusMessage: result.resourceBonusMessage });
   } catch (err) {
     next(err);
   }
@@ -125,7 +126,7 @@ router.get("/me/turn", async (req, res, next) => {
       year,
       yearLabel: formatYear(year),
       epoch: epochForYear(year),
-      event: scriptedEventForTurn(civ.turnNumber),
+      event: scriptedEventForTurn(civ.turnNumber, civ.id),
       turnsUnlocked,
       canPlay: civ.turnNumber <= turnsUnlocked,
       harvestClaimed: !!civ.turnState.harvestClaimed,
@@ -145,7 +146,7 @@ router.post("/me/turn/advance", async (req, res, next) => {
   try {
     const civ = await getCivById(req.civId);
     if (!civ) throw httpError(404, "Civilisation introuvable.");
-    const event = scriptedEventForTurn(civ.turnNumber);
+    const event = scriptedEventForTurn(civ.turnNumber, civ.id);
     const { eventText, choiceKey } = req.body || {};
 
     let effect = event?.effect || { resourceDelta: {} };
@@ -180,11 +181,30 @@ router.post("/me/turn/advance", async (req, res, next) => {
     };
     const newJournal = [...civ.journal, journalEntry];
 
+    // Some events (e.g. Passage d'un troupeau) place a huntable fauna token on
+    // the map instead of granting a resource directly — the reward comes from
+    // actually hunting it (see actions.js), on a tile matching the animal's
+    // habitat, that doesn't already carry another resource.
+    let newMap = civ.map;
+    if (event?.spawnsFauna) {
+      const resDef = loadContent().mapResourceById.get(event.spawnsFauna);
+      if (resDef) {
+        const eligible = civ.map
+          .map((t, i) => ({ t, i }))
+          .filter(({ t }) => !t.resource && resDef.compatibleTerrain.includes(t.terrainId))
+          .map(({ i }) => i);
+        if (eligible.length) {
+          const targetIndex = eligible[Math.floor(Math.random() * eligible.length)];
+          newMap = civ.map.map((t, i) => (i === targetIndex ? { ...t, resource: { id: resDef.id, kind: "faune" } } : t));
+        }
+      }
+    }
+
     const { rows } = await pool.query(
       `UPDATE civilizations SET
-         turn_number = turn_number + 1, resources = $2, bonheur_index = $3, journal = $4, turn_state = '{}', updated_at = now()
+         turn_number = turn_number + 1, resources = $2, bonheur_index = $3, journal = $4, map = $5, turn_state = '{}', updated_at = now()
        WHERE id = $1 RETURNING *`,
-      [req.civId, JSON.stringify(newResources), newBonheur, JSON.stringify(newJournal)]
+      [req.civId, JSON.stringify(newResources), newBonheur, JSON.stringify(newJournal), JSON.stringify(newMap)]
     );
     res.json(civViewModel(rowToCiv(rows[0])));
   } catch (err) {

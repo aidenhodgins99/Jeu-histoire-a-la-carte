@@ -19,12 +19,22 @@ const STARTING_LAYOUT = [
   "territoire_de_plaine",
 ];
 
-export function generateStartingMap({ starterUnitId }) {
-  return STARTING_LAYOUT.map((terrainId, index) => ({
+// Static map resources (Pierre, Épices) are placed once at map generation on
+// the first eligible non-center tile — deterministic so the layout stays
+// legible, not scattered randomly. Fauna resources are spawned later by
+// historical events (see routes/civ.js turn/advance).
+export function generateStartingMap({ starterUnitId, staticResources = [] }) {
+  const tiles = STARTING_LAYOUT.map((terrainId, index) => ({
     index,
     terrainId,
     units: index === CENTER_INDEX ? [{ id: `u${Date.now()}`, type: starterUnitId }] : [],
+    resource: null,
   }));
+  for (const res of staticResources) {
+    const tile = tiles.find((t) => !t.resource && t.index !== CENTER_INDEX && res.compatibleTerrain.includes(t.terrainId));
+    if (tile) tile.resource = { id: res.id, kind: res.kind };
+  }
+  return tiles;
 }
 
 export function neighborsOf(index) {

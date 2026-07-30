@@ -158,6 +158,21 @@ export function loadContent({ force = false } = {}) {
     source: r["Source_citation"],
   }));
 
+  // Map resources: "Statique" sit on the starting map from turn 1 (Pierre,
+  // Épices) ; "Faune" are spawned by historical events (e.g. Passage d'un
+  // troupeau) and disappear once hunted.
+  const mapResources = readCsv("Ressources_Carte_Era1.csv").map((r) => ({
+    id: r.ID,
+    kind: r.Type === "Faune" ? "faune" : "statique",
+    title: r.Nom,
+    compatibleTerrain: splitList(r["Tuiles_compatibles"]),
+    bonusResKey: (r["Ressource_bonus"] || "").toLowerCase(),
+    bonusAmount: parseCost(r["Montant_bonus"]) ?? 0,
+    description: r.Description,
+    source: r.Source,
+    imageUrl: findImageUrl(r.ID, r.Nom),
+  }));
+
   cache = {
     scienceCards,
     cultureCards,
@@ -165,11 +180,13 @@ export function loadContent({ force = false } = {}) {
     districts,
     territoires,
     historicalEvents,
+    mapResources,
     scienceById: new Map(scienceCards.map((c) => [c.id, c])),
     cultureById: new Map(cultureCards.map((c) => [c.id, c])),
     unitById: new Map(units.map((u) => [u.id, u])),
     districtById: new Map(districts.map((d) => [d.id, d])),
     territoireById: new Map(territoires.map((t) => [t.id, t])),
+    mapResourceById: new Map(mapResources.map((r) => [r.id, r])),
   };
   return cache;
 }

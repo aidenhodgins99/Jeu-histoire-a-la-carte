@@ -346,6 +346,13 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 600; text-wrap: balance; ma
 }
 .map-tile .unit-token.selected { border-color: var(--ochre); background: var(--ochre); }
 .map-legend { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 16px; font-size: 11px; color: var(--charcoal-soft); }
+.tile-resource {
+  position: absolute; bottom: 5px; right: 5px; width: 26px; height: 26px; border-radius: 50%;
+  background: rgba(20,16,10,0.62); display: flex; align-items: center; justify-content: center;
+  font-size: 14px; overflow: hidden; background-size: cover; background-position: center;
+  border: 2px solid rgba(255,255,255,0.8);
+}
+.tile-resource img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
 
 /* ---------- Real images (cards, map tiles, unit tokens) ---------- */
 .tc-frame { overflow: hidden; background-size: cover; background-position: center; }

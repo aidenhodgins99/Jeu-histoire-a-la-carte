@@ -23,6 +23,7 @@
     territoire_urbain: { ic: "🏘️", label: "Territoire urbain", color: "#7a6a52" },
   };
   const UNIT_ICONS = { chasseur_cueilleur: "🏹", travailleur: "🧑‍🌾", agriculteur: "🌾", lancier: "🗡️", guerrier: "⚔️", archer: "🏹", artisan: "🏺", prophete: "🔥", explorateur: "🧭", bateaux: "⛵", colon: "🏕️" };
+  const RESOURCE_ICONS = { pierre: "🪨", epices: "🌶️", mammouths: "🦣", tigres_dents_de_sabre: "🐅", caribous: "🦌", loups: "🐺" };
 
   const appEl = document.getElementById("app");
   const toastEl = document.getElementById("toast");
@@ -79,6 +80,12 @@
   function unitMap() {
     const map = {};
     for (const u of vm.unlockedUnits) map[u.id] = u;
+    return map;
+  }
+
+  function resourceMap() {
+    const map = {};
+    for (const r of vm.content.mapResources || []) map[r.id] = r;
     return map;
   }
 
@@ -440,6 +447,7 @@
   function renderMap() {
     const tMap = territoireMap();
     const uMap = unitMap();
+    const rMap = resourceMap();
     const tiles = vm.civ.map.map((tile) => {
       const meta = TERRAIN_META[tile.terrainId] || { ic: "❔", label: tile.terrainId, color: "#888" };
       const territoire = tMap[tile.terrainId];
@@ -451,8 +459,13 @@
         const img = unitDef?.imageUrl ? `background-image:url('${unitDef.imageUrl}');` : "";
         return `<div class="unit-token ${selected ? "selected" : ""}" style="${img}" data-unit="${u.id}" data-tile="${tile.index}" title="${u.type}${acted ? " (a agi)" : ""}">${unitDef?.imageUrl ? "" : (UNIT_ICONS[u.type] || "👤")}</div>`;
       }).join("");
+      const resDef = tile.resource ? rMap[tile.resource.id] : null;
+      const resourceBadge = resDef
+        ? `<div class="tile-resource" title="${resDef.title} — ${resDef.description || ""}">${imgOrEmoji(resDef.imageUrl, RESOURCE_ICONS[resDef.id] || "❔", resDef.title)}</div>`
+        : "";
       return `<div class="map-tile ${wizard.selectedTileIndex === tile.index ? "has-selected-unit" : ""}" style="${bgStyle}" data-tile="${tile.index}">
         <div class="tile-units">${units}</div>
+        ${resourceBadge}
         <span class="tile-label">${territoire?.imageUrl ? "" : meta.ic + " "}${meta.label}${tile.hasTanningSite ? " · 🪢" : ""}</span>
       </div>`;
     }).join("");
@@ -509,11 +522,12 @@
       btn.onclick = async () => {
         if (btn.dataset.action === "se_deplacer") { wizard.moveMode = true; renderStep3(); return; }
         try {
-          vm = await api("/api/civ/me/units/action", { method: "POST", body: { tileIndex: wizard.selectedTileIndex, unitId: wizard.selectedUnitId, actionKey: btn.dataset.action } });
+          const res = await api("/api/civ/me/units/action", { method: "POST", body: { tileIndex: wizard.selectedTileIndex, unitId: wizard.selectedUnitId, actionKey: btn.dataset.action } });
+          vm = res;
           wizard.actedUnitIds.add(wizard.selectedUnitId);
           wizard.selectedUnitId = null;
           wizard.selectedTileIndex = null;
-          toast("Action effectuée ✅");
+          toast(res.resourceBonusMessage ? `Action effectuée ✅ (${res.resourceBonusMessage})` : "Action effectuée ✅");
           renderStep3();
         } catch (e) { toast(e.message); }
       };

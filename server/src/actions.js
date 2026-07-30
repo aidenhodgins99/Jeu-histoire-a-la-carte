@@ -3,6 +3,7 @@
 // Agriculteur turning a Territoire forestier into a Territoire agricole.
 import { httpError } from "./civ.js";
 import { neighborsOf } from "./map.js";
+import { loadContent } from "./content.js";
 
 const HUNT_TILES = new Set(["territoire_forestier", "territoire_de_plaine", "territoire_de_toundra"]);
 const GATHER_TILES = new Set(["territoire_forestier", "territoire_de_plaine"]);
@@ -38,6 +39,17 @@ const ACTION_DEFS = {
           resources: { ...civ.resources, production: civ.resources.production + 2 },
           tilePatch: { hasTanningSite: true },
         };
+      },
+    },
+    // Fallback so static resources on tiles Chasse/Cueillir can't reach (e.g.
+    // Pierre on Territoire montagneux) are still workable — the resource
+    // bonus itself is applied generically below in runUnitAction.
+    exploiter: {
+      label: "Exploiter la ressource",
+      isAvailable: (civ, tile) => !!tile.resource && tile.resource.kind === "statique",
+      unavailableMessage: "Aucune ressource à exploiter sur cette tuile.",
+      run() {
+        return {};
       },
     },
   },
@@ -91,8 +103,27 @@ export function runUnitAction({ civ, tileIndex, unitId, actionKey, targetIndex }
   if (!def.isAvailable(civ, tile)) throw httpError(400, def.unavailableMessage || "Action indisponible pour le moment.");
   const result = def.run(civ, tile);
 
+  let resources = result.resources || civ.resources;
+  let tilePatch = result.tilePatch || {};
+  let resourceBonusMessage = null;
+
+  // Pierre/Épices reward whichever action works their tile; fauna (Mammouths,
+  // Loups...) only rewards Chasse specifically, and disappears once hunted.
+  if (tile.resource) {
+    const resDef = loadContent().mapResourceById.get(tile.resource.id);
+    if (resDef) {
+      const isStaticBonus = tile.resource.kind === "statique";
+      const isFaunaHunt = tile.resource.kind === "faune" && actionKey === "chasse";
+      if (isStaticBonus || isFaunaHunt) {
+        resources = { ...resources, [resDef.bonusResKey]: (resources[resDef.bonusResKey] ?? 0) + resDef.bonusAmount };
+        resourceBonusMessage = `+${resDef.bonusAmount} grâce à : ${resDef.title}`;
+        if (isFaunaHunt) tilePatch = { ...tilePatch, resource: null };
+      }
+    }
+  }
+
   const newMap = civ.map.map((t, i) =>
-    i === Number(tileIndex) && result.tilePatch ? { ...t, ...result.tilePatch } : t
+    i === Number(tileIndex) && Object.keys(tilePatch).length ? { ...t, ...tilePatch } : t
   );
-  return { map: newMap, resources: result.resources || civ.resources, actedUnitId: unitId };
+  return { map: newMap, resources, actedUnitId: unitId, resourceBonusMessage };
 }

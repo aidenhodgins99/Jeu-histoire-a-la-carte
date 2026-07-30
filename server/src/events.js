@@ -11,9 +11,18 @@ function findEvent(titleContains) {
   return match;
 }
 
-const ANIMALS = ["mammouths", "tigres à dents de sabre", "caribous", "loups"];
+// scriptedEventForTurn is called independently by both the "display" endpoint
+// (GET /me/turn, showing the event before confirmation) and the "apply"
+// endpoint (POST /turn/advance). Anything randomized inside it must be seeded
+// deterministically from civId+turn, not Math.random(), or the two calls can
+// disagree — e.g. the description naming one animal while a different one
+// gets spawned on the map.
+function seededPick(list, seed) {
+  const hash = String(seed).split("").reduce((acc, ch) => (acc * 31 + ch.charCodeAt(0)) >>> 0, 7);
+  return list[hash % list.length];
+}
 
-export function scriptedEventForTurn(turn) {
+export function scriptedEventForTurn(turn, civId) {
   switch (turn) {
     case 1: {
       const e = findEvent("Glaciation");
@@ -28,17 +37,16 @@ export function scriptedEventForTurn(turn) {
     }
     case 2: {
       const e = findEvent("Passage d'un troupeau");
-      const animal = ANIMALS[Math.floor(Math.random() * ANIMALS.length)];
+      const fauna = loadContent().mapResources.filter((r) => r.kind === "faune");
+      const chosen = seededPick(fauna, `${civId}-${turn}`);
       return {
         id: "turn2_troupeau",
         turn,
         title: e.title,
-        description: `Un troupeau de ${animal} traverse votre territoire. ${e.effect}`,
+        description: `Un troupeau de ${chosen.title.toLowerCase()} traverse votre territoire et apparaît sur la carte — chasse-le avant qu'il ne reparte !`,
         requiresText: false,
-        // Simplification for this first version: grants the bonus outright rather
-        // than checking whether a hunt action was actually taken this turn (no
-        // per-turn action log yet) — revisit once turn-scoped action tracking exists.
-        effect: { resourceDelta: { nourriture: 2 } },
+        spawnsFauna: chosen.id,
+        effect: { resourceDelta: {} },
       };
     }
     case 3: {

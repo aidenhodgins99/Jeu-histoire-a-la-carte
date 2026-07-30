@@ -70,7 +70,8 @@ export async function onboardCiv(civId, { civName, languageName }) {
     throw httpError(400, "Le nom de la civilisation et le nom de la langue sont requis.");
   }
 
-  const map = generateStartingMap({ starterUnitId: STARTER_UNIT_ID });
+  const staticResources = loadContent().mapResources.filter((r) => r.kind === "statique");
+  const map = generateStartingMap({ starterUnitId: STARTER_UNIT_ID, staticResources });
   const { rows } = await pool.query(
     `UPDATE civilizations SET
        civ_name = $2, language_name = $3, owned_cards = $4, map = $5,
@@ -88,6 +89,7 @@ export function civViewModel(civ) {
     civ,
     content: {
       territoires: content.territoires,
+      mapResources: content.mapResources,
     },
     discoverableCards: unlocked.discoverableCards,
     unlockedUnits: unlocked.unlockedUnits,
