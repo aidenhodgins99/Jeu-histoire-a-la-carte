@@ -1,0 +1,1083 @@
+<style>
+  :root {
+    --parchment: #ede3c7;
+    --parchment-soft: #f4ecd6;
+    --charcoal: #2b231c;
+    --charcoal-soft: #55493a;
+    --ochre: #b5651d;
+    --ochre-dark: #8a4b15;
+    --verdigris: #5c7a5e;
+    --woad: #3e5c76;
+    --tyrian: #6b3b5c;
+    --gold: #a6832a;
+    --line: #c9b98d;
+    --card-bg: #faf5e6;
+    --shadow: 0 1px 0 rgba(43,35,28,0.05);
+    --surface-shadow: 0 6px 20px -8px rgba(43,35,28,0.35);
+    color-scheme: light;
+  }
+  :root[data-theme="dark"] {
+    --parchment: #1b1712;
+    --parchment-soft: #221c15;
+    --charcoal: #ede3c7;
+    --charcoal-soft: #bcae8c;
+    --ochre: #d98a3d;
+    --ochre-dark: #e8a55f;
+    --verdigris: #7fa382;
+    --woad: #7ea0c4;
+    --tyrian: #b481a6;
+    --gold: #d1a94a;
+    --line: #4a4030;
+    --card-bg: #241e16;
+    --surface-shadow: 0 6px 24px -8px rgba(0,0,0,0.6);
+    color-scheme: dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --parchment: #1b1712;
+      --parchment-soft: #221c15;
+      --charcoal: #ede3c7;
+      --charcoal-soft: #bcae8c;
+      --ochre: #d98a3d;
+      --ochre-dark: #e8a55f;
+      --verdigris: #7fa382;
+      --woad: #7ea0c4;
+      --tyrian: #b481a6;
+      --gold: #d1a94a;
+      --line: #4a4030;
+      --card-bg: #241e16;
+      --surface-shadow: 0 6px 24px -8px rgba(0,0,0,0.6);
+      color-scheme: dark;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+
+  .awz-root {
+    --serif: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+    --sans: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: var(--parchment);
+    color: var(--charcoal);
+    font-family: var(--sans);
+    min-height: 100%;
+    padding: 28px 16px 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .awz-topbar {
+    width: 100%;
+    max-width: 720px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .awz-eyebrow {
+    font-family: var(--serif);
+    font-size: 13px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--charcoal-soft);
+  }
+  .awz-eyebrow strong { color: var(--charcoal); font-weight: 600; }
+
+  .awz-toggle {
+    display: inline-flex;
+    background: var(--parchment-soft);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 3px;
+    gap: 2px;
+  }
+  .awz-toggle button {
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+    background: transparent;
+    color: var(--charcoal-soft);
+    padding: 7px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  .awz-toggle button.active {
+    background: var(--ochre);
+    color: var(--parchment-soft);
+  }
+  .awz-toggle button:focus-visible { outline: 2px solid var(--woad); outline-offset: 2px; }
+
+  .awz-stage {
+    width: 100%;
+    max-width: 720px;
+    background: var(--card-bg);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    box-shadow: var(--surface-shadow);
+    padding: 28px clamp(18px, 4vw, 40px) 32px;
+    position: relative;
+  }
+  .awz-stage::before, .awz-stage::after {
+    content: "";
+    position: absolute;
+    width: 14px; height: 14px;
+    border-color: var(--ochre);
+    opacity: 0.55;
+  }
+  .awz-stage::before { top: 10px; left: 10px; border-top: 2px solid; border-left: 2px solid; }
+  .awz-stage::after { top: 10px; right: 10px; border-top: 2px solid; border-right: 2px solid; }
+
+  h1, h2, h3 { font-family: var(--serif); font-weight: 600; text-wrap: balance; margin: 0; }
+
+  /* ---------- Resource HUD ---------- */
+  .awz-hud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 22px;
+  }
+  .chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px 6px 8px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    border: 1px solid transparent;
+    transition: transform 0.18s ease;
+  }
+  .chip.bump { animation: chipbump 0.4s ease; }
+  @keyframes chipbump { 0% { transform: scale(1); } 35% { transform: scale(1.18); } 100% { transform: scale(1); } }
+  .chip .ic { font-size: 15px; line-height: 1; }
+  .chip .code { font-size: 10px; opacity: 0.65; font-weight: 700; }
+  .chip.nourriture { background: color-mix(in srgb, var(--verdigris) 16%, transparent); color: var(--verdigris); border-color: color-mix(in srgb, var(--verdigris) 35%, transparent); }
+  .chip.production { background: color-mix(in srgb, var(--ochre) 16%, transparent); color: var(--ochre-dark); border-color: color-mix(in srgb, var(--ochre) 35%, transparent); }
+  .chip.argent { background: color-mix(in srgb, var(--gold) 18%, transparent); color: var(--gold); border-color: color-mix(in srgb, var(--gold) 40%, transparent); }
+  .chip.science { background: color-mix(in srgb, var(--woad) 16%, transparent); color: var(--woad); border-color: color-mix(in srgb, var(--woad) 35%, transparent); }
+  .chip.culture { background: color-mix(in srgb, var(--tyrian) 16%, transparent); color: var(--tyrian); border-color: color-mix(in srgb, var(--tyrian) 35%, transparent); }
+  .chip.bonheur { background: var(--parchment-soft); color: var(--charcoal); border-color: var(--line); }
+
+  /* ---------- Home ---------- */
+  .awz-home-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
+  .awz-home-head h1 { font-size: 26px; }
+  .era-badge {
+    font-family: var(--sans);
+    font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--parchment-soft); background: var(--charcoal);
+    padding: 5px 10px; border-radius: 999px; white-space: nowrap;
+  }
+  .awz-sub { color: var(--charcoal-soft); font-size: 14px; margin: 4px 0 0; }
+
+  .btn {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 15px;
+    border-radius: 12px;
+    border: 1px solid transparent;
+    padding: 13px 20px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .btn:focus-visible { outline: 2px solid var(--woad); outline-offset: 2px; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-primary { background: var(--ochre); color: #fff; width: 100%; margin-top: 18px; font-size: 16px; }
+  .btn-primary:hover { background: var(--ochre-dark); }
+  .btn-ghost { background: transparent; border-color: var(--line); color: var(--charcoal); }
+  .btn-ghost:hover { background: var(--parchment-soft); }
+  .btn-secondary { background: var(--parchment-soft); border-color: var(--line); color: var(--charcoal); }
+
+  .awz-links { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+  .awz-links .btn { flex: 1; min-width: 160px; }
+  .id-badge { margin-left: 6px; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--card-bg); color: var(--ochre-dark); }
+  .id-badge.todo { color: var(--charcoal-soft); font-style: italic; font-weight: 600; }
+
+  .awz-note {
+    margin-top: 20px;
+    font-size: 13px;
+    color: var(--charcoal-soft);
+    background: var(--parchment-soft);
+    border: 1px dashed var(--line);
+    border-radius: 10px;
+    padding: 10px 12px;
+    line-height: 1.5;
+  }
+
+  /* ---------- Step tracker ---------- */
+  .awz-tracker { display: flex; align-items: center; margin-bottom: 22px; }
+  .hexnode {
+    width: 30px; height: 30px;
+    clip-path: polygon(25% 3%, 75% 3%, 100% 50%, 75% 97%, 25% 97%, 0% 50%);
+    background: var(--parchment-soft);
+    border: 2px solid var(--line);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--sans); font-size: 12px; font-weight: 800;
+    color: var(--charcoal-soft);
+    flex: none;
+  }
+  .hexnode.done { background: var(--ochre); border-color: var(--ochre); color: #fff; }
+  .hexnode.current { background: var(--charcoal); border-color: var(--charcoal); color: var(--parchment); }
+  .hextrack-line { flex: 1; height: 2px; background: var(--line); margin: 0 2px; min-width: 6px; }
+  .hextrack-line.done { background: var(--ochre); }
+
+  .step-eyebrow { font-family: var(--serif); font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ochre-dark); margin-bottom: 4px; }
+  .step-title { font-size: 22px; margin-bottom: 6px; }
+  .step-help { color: var(--charcoal-soft); font-size: 14px; margin: 0 0 18px; max-width: 60ch; line-height: 1.5; }
+
+  /* ---------- Generic pick tiles (production choices) ---------- */
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .pick-card {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px 12px;
+    background: var(--parchment-soft);
+    text-align: left;
+    cursor: pointer;
+    display: flex; flex-direction: column; gap: 8px;
+    font-family: var(--sans);
+  }
+  .pick-card:hover { border-color: var(--ochre); }
+  .pick-card:focus-visible { outline: 2px solid var(--woad); outline-offset: 2px; }
+  .pick-card.selected { border-color: var(--ochre); background: color-mix(in srgb, var(--ochre) 10%, var(--parchment-soft)); box-shadow: inset 0 0 0 1px var(--ochre); }
+  .pick-card.locked { opacity: 0.55; cursor: not-allowed; }
+  .pick-card .ptitle { font-family: var(--serif); font-weight: 600; font-size: 15px; }
+  .pick-card .pdesc { font-size: 12px; color: var(--charcoal-soft); line-height: 1.4; flex: 1; }
+  .pick-cost { font-size: 11px; font-weight: 700; align-self: flex-start; padding: 3px 8px; border-radius: 999px; }
+  .lock-msg { font-size: 11px; color: var(--charcoal-soft); font-style: italic; }
+
+  /* ---------- Trading card (shared: choisir une carte + bibliothèque) ---------- */
+  .trading-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(136px, 1fr)); gap: 12px; }
+  .trading-card {
+    position: relative;
+    border: 1px solid var(--line);
+    border-radius: 11px;
+    background: var(--parchment-soft);
+    padding: 9px;
+    display: flex; flex-direction: column; gap: 7px;
+    text-align: left;
+    font-family: var(--sans);
+    cursor: pointer;
+    aspect-ratio: 63 / 88;
+  }
+  .trading-card:disabled, .trading-card.owned { cursor: default; }
+  .trading-card:focus-visible { outline: 2px solid var(--woad); outline-offset: 2px; }
+  .trading-card::before, .trading-card::after {
+    content: ""; position: absolute; width: 10px; height: 10px; border-color: var(--ochre); opacity: 0.5; z-index: 1;
+  }
+  .trading-card::before { top: 6px; left: 6px; border-top: 2px solid; border-left: 2px solid; }
+  .trading-card::after { bottom: 6px; right: 6px; border-bottom: 2px solid; border-right: 2px solid; }
+  .trading-card.selected { border-color: var(--ochre); box-shadow: inset 0 0 0 1px var(--ochre); }
+  .trading-card.locked { opacity: 0.5; cursor: not-allowed; }
+  .tc-frame { border-radius: 7px; flex: 1; display: flex; align-items: center; justify-content: center; font-size: clamp(26px, 6vw, 36px); }
+  .tc-frame.science { background: color-mix(in srgb, var(--woad) 22%, var(--parchment-soft)); }
+  .tc-frame.culture { background: color-mix(in srgb, var(--tyrian) 22%, var(--parchment-soft)); }
+  .tc-body { display: flex; flex-direction: column; gap: 2px; }
+  .tc-type { font-size: 8.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--charcoal-soft); font-weight: 700; }
+  .tc-title { font-family: var(--serif); font-weight: 600; font-size: 13px; line-height: 1.2; }
+  .tc-desc { font-size: 10.5px; color: var(--charcoal-soft); line-height: 1.3; }
+  .tc-foot { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--line); padding-top: 6px; font-size: 11px; font-weight: 700; }
+  .tc-foot.science { color: var(--woad); }
+  .tc-foot.culture { color: var(--tyrian); }
+  .tc-owned { color: var(--verdigris); }
+  .tc-hex { opacity: 0.45; }
+  .tc-lock { font-size: 9.5px; font-style: italic; color: var(--charcoal-soft); }
+
+  /* ---------- Units (étape actions des citoyens) ---------- */
+  .unit-row { border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-bottom: 10px; background: var(--parchment-soft); }
+  .unit-row.acted { border-color: var(--verdigris); }
+  .unit-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .unit-head .uname { font-family: var(--serif); font-weight: 600; font-size: 16px; }
+  .unit-status { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: var(--line); color: var(--charcoal); }
+  .unit-status.done { background: var(--verdigris); color: #fff; }
+  .unit-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .unit-actions button { font-size: 13px; padding: 8px 12px; }
+  .unit-actions button.chosen { background: var(--verdigris); color: #fff; border-color: var(--verdigris); }
+
+  /* ---------- Event reveal ---------- */
+  .event-card {
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 22px;
+    background: linear-gradient(180deg, var(--parchment-soft), var(--card-bg));
+    text-align: center;
+  }
+  .event-card .emoji { font-size: 40px; display: block; margin-bottom: 10px; }
+  .event-card h3 { font-size: 18px; margin-bottom: 8px; }
+  .event-card p { font-size: 14px; color: var(--charcoal-soft); line-height: 1.5; max-width: 46ch; margin: 0 auto; }
+  .event-effect { display: inline-block; margin-top: 12px; font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 999px; background: color-mix(in srgb, var(--verdigris) 18%, transparent); color: var(--verdigris); }
+  .write-prompt { margin-top: 18px; text-align: left; }
+  .write-prompt label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+  .write-prompt textarea {
+    width: 100%; min-height: 70px; border-radius: 10px; border: 1px solid var(--line);
+    background: var(--parchment-soft); color: var(--charcoal); font-family: var(--sans); font-size: 14px;
+    padding: 10px 12px; resize: vertical;
+  }
+  .write-prompt textarea:focus-visible { outline: 2px solid var(--woad); }
+  .write-hint { font-size: 11.5px; color: var(--charcoal-soft); margin-top: 4px; }
+
+  /* ---------- Reveal (récolte du jour) ---------- */
+  .reveal-progress { display: flex; gap: 6px; justify-content: center; margin-bottom: 18px; }
+  .reveal-progress span { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
+  .reveal-progress span.done { background: var(--ochre); }
+  .reveal-progress span.current { background: var(--charcoal); }
+  .reveal-card {
+    border: 1px solid var(--line); border-radius: 16px; padding: 30px 22px;
+    text-align: center; background: linear-gradient(180deg, var(--parchment-soft), var(--card-bg));
+    animation: revealpop 0.35s ease;
+  }
+  @keyframes revealpop { from { opacity: 0; transform: scale(0.94) translateY(6px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+  .reveal-card.special { border-color: var(--gold); box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold) 25%, transparent); }
+  .reveal-icon { font-size: 46px; display: block; margin-bottom: 10px; }
+  .reveal-amount { font-family: var(--serif); font-size: 30px; font-weight: 700; margin: 6px 0; }
+  .reveal-label { font-size: 14px; color: var(--charcoal-soft); }
+  .reveal-badge { display: inline-block; margin-top: 10px; font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; background: color-mix(in srgb, var(--gold) 22%, transparent); color: var(--gold); }
+  .reveal-narrative { font-size: 13px; color: var(--charcoal-soft); line-height: 1.5; max-width: 44ch; margin: 12px auto 0; font-style: italic; }
+  .reveal-head { text-align: center; margin-bottom: 6px; }
+
+  /* ---------- Summary / timeline ---------- */
+  .sum-list { list-style: none; padding: 0; margin: 0 0 18px; display: flex; flex-direction: column; gap: 8px; }
+  .sum-list li { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--parchment-soft); }
+  .sum-list li span:first-child { color: var(--charcoal-soft); }
+  .sum-list li span:last-child { font-weight: 700; text-align: right; }
+  .timeline-mini { position: relative; height: 46px; margin: 4px 4px 26px; }
+  .timeline-mini .tl-line { position: absolute; top: 22px; left: 0; right: 0; height: 2px; background: var(--line); }
+  .timeline-mini .tl-tick { position: absolute; top: 14px; width: 2px; height: 16px; background: var(--line); transform: translateX(-1px); }
+  .timeline-mini .tl-tick.now { background: var(--ochre); }
+  .timeline-mini .tl-label { position: absolute; top: -2px; font-size: 10px; font-weight: 700; color: var(--charcoal-soft); transform: translateX(-50%); }
+  .timeline-mini .tl-label.now { color: var(--ochre-dark); top: 32px; }
+  .bonus-box { border: 1px dashed var(--gold); border-radius: 10px; padding: 12px 14px; margin-top: 6px; background: color-mix(in srgb, var(--gold) 8%, transparent); }
+  .bonus-box label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; color: var(--ochre-dark); }
+  .bonus-box textarea {
+    width: 100%; min-height: 64px; border-radius: 8px; border: 1px solid var(--line);
+    background: var(--card-bg); color: var(--charcoal); font-family: var(--sans); font-size: 13.5px;
+    padding: 9px 11px; resize: vertical;
+  }
+
+  /* ---------- Nav row ---------- */
+  .awz-nav { display: flex; gap: 10px; margin-top: 22px; }
+  .awz-nav .btn { flex: 1; }
+
+  /* ---------- Journal ---------- */
+  .journal-entry { border-left: 3px solid var(--ochre); padding: 8px 0 8px 14px; margin-bottom: 14px; }
+  .journal-entry .jhead { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--charcoal-soft); margin-bottom: 3px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+  .journal-entry p { margin: 0; font-size: 14px; line-height: 1.5; }
+  .journal-entry blockquote { margin: 6px 0 0; padding-left: 10px; border-left: 2px solid var(--line); font-style: italic; font-size: 13.5px; color: var(--charcoal-soft); }
+  .journal-entry .jtags { margin-top: 6px; display: flex; gap: 6px; flex-wrap: wrap; }
+  .journal-entry .jtags span { font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 999px; }
+
+  /* ---------- Toast ---------- */
+  .awz-toast {
+    position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
+    background: var(--charcoal); color: var(--parchment);
+    padding: 12px 18px; border-radius: 10px; font-size: 14px; font-weight: 600;
+    box-shadow: var(--surface-shadow);
+    opacity: 0; pointer-events: none; transition: opacity 0.25s ease, transform 0.25s ease;
+    z-index: 50;
+  }
+  .awz-toast.show { opacity: 1; transform: translateX(-50%) translateY(-6px); }
+
+  /* ================= PAPER VIEW ================= */
+  .paper-wrap { display: flex; flex-direction: column; gap: 24px; width: 100%; max-width: 720px; }
+  .paper-sheet {
+    background-color: #fbf8ee;
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56'%3E%3Cg fill='none' stroke='%232b231c' stroke-width='1' opacity='0.065'%3E%3Cpolygon points='28,3 50,15.5 50,40.5 28,53 6,40.5 6,15.5'/%3E%3C/g%3E%3C/svg%3E"),
+      radial-gradient(ellipse at 85% 8%, rgba(181,101,29,0.05), transparent 55%);
+    background-size: 56px 56px, auto;
+    color: #2b231c;
+    border: 1px solid #d8cca0;
+    border-radius: 4px;
+    box-shadow: var(--surface-shadow);
+    padding: 26px clamp(16px,4vw,34px);
+    font-family: var(--sans);
+    position: relative;
+  }
+  .paper-head { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #2b231c; padding-bottom: 10px; margin-bottom: 16px; flex-wrap: wrap; gap: 8px; }
+  .paper-head h2 { font-family: var(--serif); font-size: 20px; }
+  .paper-fields { font-size: 12px; display: flex; gap: 14px; flex-wrap: wrap; }
+  .paper-fields b { border-bottom: 1px dotted #2b231c; padding: 0 20px 1px 2px; }
+
+  .econ-row { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; border: 1px solid #2b231c; border-radius: 8px; padding: 12px 14px; margin-bottom: 18px; background: rgba(255,255,255,0.35); }
+  .econ-field { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; }
+  .econ-line { display: inline-block; min-width: 34px; border-bottom: 1px dotted #2b231c; height: 15px; }
+  .econ-field.mood { gap: 8px; margin-left: auto; }
+  .mood-row { display: flex; gap: 5px; font-size: 15px; }
+  .mood-caption { font-size: 9.5px; font-weight: 600; color: #5b5040; text-transform: uppercase; letter-spacing: 0.04em; }
+
+  .paper-steps { display: flex; flex-direction: column; gap: 14px; }
+  .paper-step { border: 1px solid #2b231c; border-radius: 8px; padding: 12px 14px; background: rgba(255,255,255,0.3); }
+  .paper-step .pstep-title { font-weight: 700; font-size: 13px; display: flex; gap: 8px; align-items: baseline; margin-bottom: 6px; }
+  .paper-step .pstep-num { font-family: var(--serif); font-size: 15px; background: #2b231c; color: #fbf8ee; width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; flex: none; }
+  .paper-step .pstep-help { font-size: 11.5px; color: #5b5040; margin: 0 0 8px 28px; }
+  .inline-blank { display: inline-block; min-width: 150px; border-bottom: 1px dotted #2b231c; height: 14px; vertical-align: middle; }
+  .fill-line { margin-left: 28px; border-bottom: 1px dotted #2b231c; height: 20px; }
+  .fill-line + .fill-line { margin-top: 6px; }
+
+  .paper-timeline { position: relative; height: 46px; margin: 4px 4px 30px 28px; }
+  .paper-timeline .pt-line { position: absolute; top: 20px; left: 0; right: 4%; height: 2px; background: #2b231c; }
+  .paper-timeline .pt-tick { position: absolute; top: 12px; width: 2px; height: 16px; background: #2b231c; }
+  .paper-timeline .pt-tick.now { width: 3px; }
+  .paper-timeline .pt-label { position: absolute; top: -4px; font-size: 10px; font-weight: 700; transform: translateX(-50%); }
+  .paper-timeline .pt-now-label { position: absolute; top: 30px; font-size: 9.5px; font-weight: 700; transform: translateX(-50%); }
+
+  .paper-footer { margin-top: 18px; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; font-size: 12px; }
+  .visa-box { border: 1px solid #2b231c; border-radius: 6px; padding: 8px 12px; min-width: 160px; }
+
+  .paper-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .paper-table th, .paper-table td { border: 1px solid #2b231c; padding: 7px 8px; text-align: left; vertical-align: top; }
+  .paper-table th { background: #ece2c6; font-family: var(--serif); font-weight: 700; }
+
+  .sticky-note {
+    background: #f4e6a8; border: 1px solid #cbb45c; border-radius: 4px;
+    padding: 14px 16px; font-size: 12.5px; line-height: 1.55; color: #3a3120;
+    box-shadow: 2px 3px 6px rgba(0,0,0,0.12);
+    transform: rotate(-0.6deg);
+  }
+  .sticky-note b { font-family: var(--serif); }
+
+  .print-btn-row { display: flex; justify-content: flex-end; }
+
+  @media print {
+    .awz-topbar, .awz-note, .print-btn-row { display: none !important; }
+    .paper-sheet { box-shadow: none; border: none; }
+  }
+</style>
+
+<div class="awz-root" id="awzRoot">
+  <div class="awz-topbar">
+    <div class="awz-eyebrow">Prototype cliquable &middot; <strong>Assistant de tour</strong> &mdash; Clan du Héron</div>
+    <div class="awz-toggle" role="tablist" aria-label="Choisir la version">
+      <button id="tabDigital" class="active" role="tab" aria-selected="true">Aperçu numérique</button>
+      <button id="tabPaper" role="tab" aria-selected="false">Aperçu papier</button>
+    </div>
+  </div>
+
+  <div id="digitalView"></div>
+  <div id="paperView" style="display:none;"></div>
+
+  <div class="awz-toast" id="toast"></div>
+</div>
+
+<script>
+(function () {
+  const RES_META = {
+    nourriture: { label: "Nourriture", ic: "🌾", code: "N" },
+    production: { label: "Production", ic: "🔨", code: "P" },
+    argent:     { label: "Argent",     ic: "🪙", code: "A" },
+    science:    { label: "Science",    ic: "🔬", code: "S" },
+    culture:    { label: "Culture",    ic: "🎭", code: "C" },
+  };
+  const MOODS = ["😡","🙁","😐","🙂","😄"];
+  const MOOD_LABELS = ["Révolte","Mécontent","Neutre","Content","Âge d'or"];
+
+  const STEP_LABELS = [
+    "Choisir une carte",
+    "Production de l'établissement",
+    "Actions des citoyens",
+    "Carte historique",
+    "Résumé"
+  ];
+
+  // Cartes + coûts synchronisés avec cartes/Arbre_Scientifique_Era1.csv (source de vérité)
+  // Seuls Taille de la pierre (science) et Langage (culture) sont des acquis de départ (voir library) ;
+  // Maîtrise du feu coûte désormais 1 point de Science, comme dans la banque de cartes.
+  const CARD_POOL = [
+    { id: "feu", type: "science", typeLabel: "Carte scientifique", icon: "🔥", titre: "Maîtrise du feu", cout: 1, desc: "Se réchauffer, s'illuminer, cuire les aliments et se protéger des prédateurs. Débloque la Cuisine." },
+    { id: "outils", type: "science", typeLabel: "Carte scientifique", icon: "🪡", titre: "Outils de pierre et d'os", cout: 4, desc: "Une aiguille pour coudre, un grattoir pour travailler les peaux, une lance en bois et en pierre pour la chasse. Débloque le Lancier." },
+    { id: "ecriture", type: "science", typeLabel: "Carte scientifique", icon: "📜", titre: "Écriture", cout: 14, desc: "Naît en Mésopotamie vers -3300 ; marque, selon plusieurs historiens, la fin de la préhistoire. Débloque le Campus." },
+  ];
+
+  // Cartes croyance et gouvernance disponibles pour la fiche d'identité de la civilisation
+  const CROYANCE_OPTIONS = [
+    { id: "animisme", titre: "Animisme", desc: "Croyance selon laquelle des esprits habitent les éléments naturels (animaux, arbres, rivières).", disabled: false },
+  ];
+  const GOUVERNANCE_OPTIONS = [
+    { id: "chefferie", titre: "Chefferie", desc: "Un chef reconnu par le groupe prend les décisions importantes.", bonus: "Bonus : décisions rapides (+Pouvoir)" },
+    { id: "vie_tribale", titre: "Vie tribale", desc: "Les décisions sont prises collectivement par un conseil d'aînés et de membres respectés, chargés de trancher les différends.", bonus: "Bonus : stabilité du groupe (+Bonheur)" },
+  ];
+
+  const REVEAL_ITEMS = [
+    { icon: "🔬", label: "Quiz du jour — 3/4 bonnes réponses", amount: 3, res: "science" },
+    { icon: "🎭", label: "Cahier d'activités, section 2 (crédité)", amount: 2, res: "culture" },
+    { icon: "🪙", label: "Lecture i+ Interactif complétée", amount: 1, res: "argent" },
+    { icon: "🏆", label: "Réussite spéciale", amount: 5, res: "culture", special: true,
+      narrative: "Ta Chasseuse a peint une scène de chasse au mammouth sur la paroi du campement, à l'honneur du clan." },
+  ];
+
+  const PROD_OPTIONS = [
+    { id: "chasse", label: "Améliorer une tuile de chasse", cout: 5, effet: "+1 Nourriture / tour" },
+    { id: "tannage", label: "Construire un site de tannage", cout: 8, effet: "+1 Production / tour" },
+    { id: "aucun", label: "Ne rien produire ce tour (économiser)", cout: 0, effet: "Conserver la Production" },
+  ];
+
+  function freshEvent() {
+    return {
+      emoji: "🦣", titre: "Passage d'un troupeau de mammouths laineux",
+      texte: "Un troupeau traverse la vallée près du campement.",
+      effet: "+2 Nourriture", effetLabel: "Effet obtenu (un Chasseur était déjà en action) :",
+      prompt: "Comment réagissez-vous à cet événement? Qu'est-ce que ton clan décide de faire?",
+      resKey: "nourriture", amount: 2
+    };
+  }
+
+  let state = {
+    resources: { nourriture: 14, production: 9, argent: 6, science: 7, culture: 8 },
+    bonheurIndex: 3,
+    era: "Paléolithique",
+    turnNumber: 5,
+    screen: "home", // home | reveal | wizard | journal | library | identite
+    step: 1,
+    revealIndex: 0,
+    croyance: "animisme",
+    gouvernance: null,
+    draft: { cardId: null, production: null, unitActions: {}, event: null, eventText: "", timelineText: "" },
+    journal: [
+      { turn: 3, date: "16 sept.", text: "Découverte du Langage grâce au quiz du jour. La Chasseuse a chassé sur la tuile de forêt (+2 Nourriture).", quote: "", tags: [["culture","Culture"]] },
+      { turn: 4, date: "18 sept.", text: "Fondation du campement « Rive-du-Héron ». Aucun événement déclenché ce tour.", quote: "", tags: [["production","Établissement"]] },
+    ],
+    library: [
+      { titre: "Taille de la pierre", type: "science", typeLabel: "Carte scientifique", icon: "🪨", desc: "Outils tranchants pour la chasse et le dépeçage." },
+      { titre: "Langage", type: "culture", typeLabel: "Carte culturelle", icon: "💬", desc: "Raconter des histoires et imaginer des mythes permet à de grands groupes de coopérer — les débuts d'une culture collective." },
+    ]
+  };
+
+  const digitalEl = document.getElementById("digitalView");
+  const paperEl = document.getElementById("paperView");
+  const toastEl = document.getElementById("toast");
+
+  function toast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add("show");
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => toastEl.classList.remove("show"), 2200);
+  }
+
+  function hud(bumpKey) {
+    const chips = Object.entries(state.resources).map(([key, val]) => {
+      const m = RES_META[key];
+      return `<div class="chip ${key} ${key === bumpKey ? 'bump' : ''}"><span class="ic">${m.ic}</span>${val}<span class="code">${m.code}</span></div>`;
+    }).join("");
+    const mood = `<div class="chip bonheur"><span class="ic">${MOODS[state.bonheurIndex]}</span>${MOOD_LABELS[state.bonheurIndex]}</div>`;
+    return `<div class="awz-hud">${chips}${mood}</div>`;
+  }
+
+  function tracker(current) {
+    let out = '<div class="awz-tracker">';
+    for (let i = 1; i <= 5; i++) {
+      const cls = i < current ? "done" : (i === current ? "current" : "");
+      out += `<div class="hexnode ${cls}" title="${STEP_LABELS[i-1]}">${i}</div>`;
+      if (i < 5) out += `<div class="hextrack-line ${i < current ? 'done' : ''}"></div>`;
+    }
+    out += "</div>";
+    return out;
+  }
+
+  function tradingCard(card, { locked = false, selected = false, owned = false } = {}) {
+    const typeClass = card.type || "culture";
+    return `<button class="trading-card ${selected ? "selected" : ""} ${locked ? "locked" : ""} ${owned ? "owned" : ""}" data-id="${card.id || card.titre}" ${(locked || owned) ? "disabled" : ""}>
+      <div class="tc-frame ${typeClass}"><span>${card.icon || "❔"}</span></div>
+      <div class="tc-body">
+        <span class="tc-type">${card.typeLabel || ""}</span>
+        <span class="tc-title">${card.titre}</span>
+        <span class="tc-desc">${card.desc}</span>
+      </div>
+      <div class="tc-foot ${typeClass}">
+        ${owned ? '<span class="tc-owned">✔ Obtenue</span>' : `<span>${RES_META[card.type] ? RES_META[card.type].ic : ""} ${card.cout}</span>`}
+        <span class="tc-hex">⬡</span>
+      </div>
+      ${locked ? `<span class="tc-lock">🔒 ${card.lockMsg || ""}</span>` : ""}
+    </button>`;
+  }
+
+  function renderHome() {
+    digitalEl.innerHTML = `
+      <div class="awz-stage">
+        <div class="awz-home-head">
+          <h1>Fiche de civilisation</h1>
+          <div class="era-badge">${state.era} &middot; Tour ${state.turnNumber}</div>
+        </div>
+        <p class="awz-sub">Clan du Héron &mdash; vallée fluviale, Croissant fertile (secteur 3)</p>
+        ${hud()}
+        <button class="btn btn-primary" id="btnStart">▶ Jouer mon tour</button>
+        <div class="awz-links">
+          <button class="btn btn-secondary" id="btnJournal">📖 Journal de bord</button>
+          <button class="btn btn-secondary" id="btnLibrary">🗂️ Ma bibliothèque de cartes</button>
+        </div>
+        <div class="awz-links">
+          <button class="btn btn-secondary" id="btnIdentite">⚖️ Croyance et gouvernance ${state.gouvernance ? `<span class="id-badge">${GOUVERNANCE_OPTIONS.find(g => g.id === state.gouvernance).titre}</span>` : `<span class="id-badge todo">à choisir</span>`}</button>
+        </div>
+        <div class="awz-note">Prototype : les données sont fictives et remises à zéro si tu recharges la page. On valide ici seulement l'enchaînement des écrans.</div>
+      </div>`;
+    document.getElementById("btnStart").onclick = () => { state.screen = "reveal"; state.revealIndex = 0; render(); };
+    document.getElementById("btnJournal").onclick = () => { state.screen = "journal"; render(); };
+    document.getElementById("btnLibrary").onclick = () => { state.screen = "library"; render(); };
+    document.getElementById("btnIdentite").onclick = () => { state.screen = "identite"; render(); };
+  }
+
+  function renderIdentite(pendingGouvernance) {
+    const chosenGouv = pendingGouvernance !== undefined ? pendingGouvernance : state.gouvernance;
+    const croyanceHtml = CROYANCE_OPTIONS.map(c => `
+      <button class="pick-card selected" disabled>
+        <span class="ptitle">${c.titre} <span class="tc-owned" style="font-size:11px;">✔ seule option pour l'instant</span></span>
+        <span class="pdesc">${c.desc}</span>
+      </button>`).join("");
+    const gouvHtml = GOUVERNANCE_OPTIONS.map(g => `
+      <button class="pick-card ${chosenGouv === g.id ? "selected" : ""}" data-gid="${g.id}">
+        <span class="ptitle">${g.titre}</span>
+        <span class="pdesc">${g.desc}</span>
+        <span class="pick-cost chip culture">${g.bonus}</span>
+      </button>`).join("");
+    digitalEl.innerHTML = `<div class="awz-stage">
+      <h2 style="margin-bottom:4px;">⚖️ Croyance et gouvernance</h2>
+      <p class="awz-sub" style="margin-bottom:18px;">Ces cartes s'appliquent à toute ta civilisation et lui donnent des bonus. D'autres choix s'ajouteront plus tard dans la partie.</p>
+      <div class="step-eyebrow">Carte croyance</div>
+      <div class="card-grid" style="margin-bottom:20px;">${croyanceHtml}</div>
+      <div class="step-eyebrow">Carte gouvernance &mdash; choisis-en une</div>
+      <div class="card-grid">${gouvHtml}</div>
+      <button class="btn btn-primary" id="btnConfirmIdentite" ${chosenGouv ? "" : "disabled"}>✅ Confirmer mes choix</button>
+      <button class="btn btn-ghost" id="btnHome" style="margin-top:10px; width:100%;">◀ Retour à la fiche</button>
+    </div>`;
+    digitalEl.querySelectorAll(".card-grid button[data-gid]").forEach(btn => {
+      btn.onclick = () => renderIdentite(btn.dataset.gid);
+    });
+    document.getElementById("btnConfirmIdentite").onclick = () => {
+      state.gouvernance = chosenGouv;
+      state.screen = "home";
+      render();
+      toast(`${GOUVERNANCE_OPTIONS.find(g => g.id === chosenGouv).titre} appliquée à ta civilisation ✅`);
+    };
+    document.getElementById("btnHome").onclick = () => { state.screen = "home"; render(); };
+  }
+
+  function stageWrap(inner, bumpKey) {
+    digitalEl.innerHTML = `<div class="awz-stage">${hud(bumpKey)}${tracker(state.step)}${inner}</div>`;
+  }
+
+  function navRow(canBack, nextLabel, nextEnabled) {
+    return `<div class="awz-nav">
+      ${canBack ? '<button class="btn btn-ghost" id="btnBack">◀ Retour</button>' : ""}
+      <button class="btn btn-primary" id="btnNext" ${nextEnabled === false ? "disabled" : ""} style="margin-top:0;">${nextLabel}</button>
+    </div>`;
+  }
+
+  function wireNav(onBack, onNext) {
+    const b = document.getElementById("btnBack");
+    if (b) b.onclick = onBack;
+    const n = document.getElementById("btnNext");
+    if (n) n.onclick = onNext;
+  }
+
+  /* ---------- Récolte du jour : reveal séquence ---------- */
+  function renderReveal(bumpKey) {
+    const items = REVEAL_ITEMS;
+    const i = state.revealIndex;
+    const dots = items.map((_, idx) => `<span class="${idx < i ? 'done' : (idx === i ? 'current' : '')}"></span>`).join("");
+    const it = items[i];
+    const isLast = i === items.length - 1;
+    const card = `
+      <div class="reveal-card ${it.special ? "special" : ""}">
+        ${it.special ? '<span class="reveal-badge">🎲 Bonus occasionnel</span>' : ""}
+        <span class="reveal-icon">${it.icon}</span>
+        <div class="reveal-amount">+${it.amount} ${RES_META[it.res].label}</div>
+        <div class="reveal-label">${it.label}</div>
+        ${it.narrative ? `<p class="reveal-narrative">${it.narrative}</p>` : ""}
+      </div>`;
+    digitalEl.innerHTML = `<div class="awz-stage">
+      ${hud(bumpKey)}
+      <div class="reveal-head"><h2>🎉 Récolte du jour</h2></div>
+      <div class="reveal-progress">${dots}</div>
+      ${card}
+      <button class="btn btn-primary" id="btnRevealNext">${isLast ? "Continuer vers mon tour ▶" : "Suivant ▶"}</button>
+    </div>`;
+    document.getElementById("btnRevealNext").onclick = () => {
+      state.resources[it.res] += it.amount;
+      if (isLast) {
+        state.screen = "wizard";
+        state.step = 1;
+        render();
+      } else {
+        state.revealIndex += 1;
+        renderReveal(it.res);
+      }
+    };
+  }
+
+  /* ---------- Étape 1 : choisir une carte ---------- */
+  function selectCard(id) {
+    const newCard = CARD_POOL.find(c => c.id === id);
+    if (state.draft.cardId) {
+      const prev = CARD_POOL.find(c => c.id === state.draft.cardId);
+      if (prev) state.resources[prev.type] += prev.cout;
+    }
+    if (state.draft.cardId === id) {
+      state.draft.cardId = null;
+      renderStep1();
+      return;
+    }
+    state.resources[newCard.type] -= newCard.cout;
+    state.draft.cardId = id;
+    renderStep1(newCard.type);
+  }
+
+  function renderStep1(bumpKey) {
+    const cardsHtml = CARD_POOL.map(c => {
+      const bal = state.resources[c.type];
+      const sel = state.draft.cardId === c.id;
+      const locked = !sel && bal < c.cout;
+      const withLock = { ...c, lockMsg: `Il te manque ${c.cout - bal} point(s) de ${RES_META[c.type].label.toLowerCase()}` };
+      return tradingCard(withLock, { locked, selected: sel });
+    }).join("");
+    const inner = `
+      <div class="step-eyebrow">Étape 1 / 5</div>
+      <h2 class="step-title">Choisir une carte</h2>
+      <p class="step-help">Voici les cartes que tu peux obtenir maintenant avec ce que tu possèdes. Les cartes trop chères sont grisées &mdash; garde tes points pour plus tard si tu préfères. Tu peux aussi n'en choisir aucune.</p>
+      <div class="trading-grid">${cardsHtml}</div>
+      ${navRow(true, "Continuer ▶")}
+    `;
+    stageWrap(inner, bumpKey);
+    digitalEl.querySelectorAll(".trading-card:not(.locked):not(.owned)").forEach(btn => {
+      btn.onclick = () => selectCard(btn.dataset.id);
+    });
+    wireNav(() => { state.screen = "home"; render(); }, () => { state.step = 2; render(); });
+  }
+
+  /* ---------- Étape 2 : production de l'établissement ---------- */
+  function selectProduction(id) {
+    if (state.draft.production) {
+      const prev = PROD_OPTIONS.find(o => o.id === state.draft.production);
+      if (prev) state.resources.production += prev.cout;
+    }
+    const next = PROD_OPTIONS.find(o => o.id === id);
+    state.resources.production -= next.cout;
+    state.draft.production = id;
+    renderStep2("production");
+  }
+
+  function renderStep2(bumpKey) {
+    const bal = state.resources.production;
+    const optHtml = PROD_OPTIONS.map(o => {
+      const sel = state.draft.production === o.id;
+      const locked = !sel && o.cout > bal;
+      return `<button class="pick-card ${sel ? "selected" : ""} ${locked ? "locked" : ""}" data-id="${o.id}" ${locked ? "disabled" : ""}>
+        <span class="ptitle">${o.label}</span>
+        <span class="pdesc">${o.effet}</span>
+        <span class="pick-cost chip production">🔨 ${o.cout}</span>
+      </button>`;
+    }).join("");
+    const inner = `
+      <div class="step-eyebrow">Étape 2 / 5</div>
+      <h2 class="step-title">Production de l'établissement</h2>
+      <p class="step-help">Campement « Rive-du-Héron » &mdash; choisis une seule chose à produire ou améliorer ce tour.</p>
+      <div class="card-grid">${optHtml}</div>
+      ${navRow(true, "Continuer ▶", !!state.draft.production)}
+    `;
+    stageWrap(inner, bumpKey);
+    digitalEl.querySelectorAll(".pick-card:not(.locked)").forEach(btn => {
+      btn.onclick = () => selectProduction(btn.dataset.id);
+    });
+    wireNav(() => { state.step = 1; render(); }, () => { if (state.draft.production) { state.step = 3; render(); } });
+  }
+
+  /* ---------- Étape 3 : actions des citoyens ---------- */
+  function renderStep3() {
+    const units = [
+      { id: "chasseur", name: "Chasseur", actions: ["Chasser (+Nourriture)", "Se déplacer"] },
+      { id: "cueilleuse", name: "Cueilleuse", actions: ["Cueillir (+Nourriture)", "Se déplacer"] },
+    ];
+    const rows = units.map(u => {
+      const chosen = state.draft.unitActions[u.id];
+      const actionsHtml = u.actions.map(a => `<button class="btn btn-secondary ${chosen === a ? 'chosen' : ''}" data-unit="${u.id}" data-action="${a}">${a}</button>`).join("");
+      return `<div class="unit-row ${chosen ? 'acted' : ''}">
+        <div class="unit-head">
+          <span class="uname">${u.name}</span>
+          <span class="unit-status ${chosen ? 'done' : ''}">${chosen ? '✔ A agi' : 'En attente'}</span>
+        </div>
+        <div class="unit-actions">${actionsHtml}</div>
+      </div>`;
+    }).join("");
+    const allDone = units.every(u => state.draft.unitActions[u.id]);
+    const inner = `
+      <div class="step-eyebrow">Étape 3 / 5</div>
+      <h2 class="step-title">Actions des citoyens</h2>
+      <p class="step-help">Chaque unité peut faire une seule action ce tour. Touche une action pour l'assigner.</p>
+      ${rows}
+      ${navRow(true, "Continuer ▶", allDone)}
+    `;
+    stageWrap(inner);
+    digitalEl.querySelectorAll(".unit-actions button").forEach(btn => {
+      btn.onclick = () => {
+        state.draft.unitActions[btn.dataset.unit] = btn.dataset.action;
+        renderStep3();
+      };
+    });
+    wireNav(() => { state.step = 2; render(); }, () => { if (allDone) { state.step = 4; render(); } });
+  }
+
+  /* ---------- Étape 4 : carte historique (+ écriture) ---------- */
+  function renderStep4(bumpKey) {
+    let justApplied = null;
+    if (!state.draft.event) {
+      state.draft.event = freshEvent();
+      state.resources[state.draft.event.resKey] += state.draft.event.amount;
+      justApplied = state.draft.event.resKey;
+    }
+    const ev = state.draft.event;
+    const wordCount = state.draft.eventText.trim().length;
+    const inner = `
+      <div class="step-eyebrow">Étape 4 / 5</div>
+      <h2 class="step-title">Carte historique</h2>
+      <div class="event-card">
+        <span class="emoji">${ev.emoji}</span>
+        <h3>${ev.titre}</h3>
+        <p>${ev.texte}</p>
+        <span class="event-effect">${ev.effetLabel} ${ev.effet}</span>
+        <div class="write-prompt">
+          <label>✍️ ${ev.prompt}</label>
+          <textarea id="eventText" placeholder="Écris la décision de ton clan en une ou deux phrases…">${state.draft.eventText}</textarea>
+          <p class="write-hint">Ce texte devient un extrait de l'histoire de ta civilisation dans le Journal de bord.</p>
+        </div>
+      </div>
+      ${navRow(true, "Continuer ▶", wordCount >= 10)}
+    `;
+    stageWrap(inner, bumpKey || justApplied);
+    const ta = document.getElementById("eventText");
+    ta.oninput = () => {
+      state.draft.eventText = ta.value;
+      const nextBtn = document.getElementById("btnNext");
+      if (nextBtn) nextBtn.disabled = ta.value.trim().length < 10;
+    };
+    wireNav(() => { state.step = 3; render(); }, () => { state.step = 5; render(); });
+  }
+
+  /* ---------- Étape 5 : résumé (timeline) + confirmation ---------- */
+  function renderStep5() {
+    const card = CARD_POOL.find(c => c.id === state.draft.cardId);
+    const prodMap = { chasse: "Tuile de chasse améliorée (+1 Nourriture/tour)", tannage: "Site de tannage construit (+1 Production/tour)", aucun: "Production conservée" };
+    const items = [
+      card ? `<li><span>Carte obtenue</span><span>${card.titre}</span></li>` : `<li><span>Carte obtenue</span><span>Aucune</span></li>`,
+      `<li><span>Établissement</span><span>${prodMap[state.draft.production]}</span></li>`,
+      `<li><span>Chasseur</span><span>${state.draft.unitActions.chasseur}</span></li>`,
+      `<li><span>Cueilleuse</span><span>${state.draft.unitActions.cueilleuse}</span></li>`,
+      `<li><span>Événement</span><span>${state.draft.event.titre} (${state.draft.event.effet})</span></li>`,
+    ].join("");
+    const inner = `
+      <div class="step-eyebrow">Étape 5 / 5</div>
+      <h2 class="step-title">Résumé — Journal de bord</h2>
+      <p class="step-help">Ton tour dans la ligne du temps de ta civilisation :</p>
+      <div class="timeline-mini">
+        <div class="tl-line"></div>
+        <div class="tl-tick" style="left:12%"></div><div class="tl-label" style="left:12%">Tour 3</div>
+        <div class="tl-tick" style="left:46%"></div><div class="tl-label" style="left:46%">Tour 4</div>
+        <div class="tl-tick now" style="left:84%"></div><div class="tl-label now" style="left:84%">▲ Tour ${state.turnNumber}</div>
+      </div>
+      <ul class="sum-list">${items}</ul>
+      <blockquote style="margin:0 0 16px; padding-left:12px; border-left:2px solid var(--line); font-style:italic; color:var(--charcoal-soft); font-size:13.5px;">« ${state.draft.eventText} »</blockquote>
+      <div class="bonus-box">
+        <label>✍️ Envie d'ajouter à l'histoire de ta civilisation? (facultatif — +1 Culture bonus)</label>
+        <textarea id="timelineText" placeholder="Un mot de plus sur ce que vit ton clan en ce moment…">${state.draft.timelineText}</textarea>
+      </div>
+      <button class="btn btn-primary" id="btnConfirm">✅ Confirmer mon tour</button>
+    `;
+    stageWrap(inner);
+    document.getElementById("timelineText").oninput = (e) => { state.draft.timelineText = e.target.value; };
+    document.getElementById("btnConfirm").onclick = confirmTurn;
+  }
+
+  function confirmTurn() {
+    const card = CARD_POOL.find(c => c.id === state.draft.cardId);
+    let bonusApplied = false;
+    if (state.draft.timelineText.trim().length > 0) {
+      state.resources.culture += 1;
+      bonusApplied = true;
+    }
+    if (card) state.library.push({ titre: card.titre, type: card.type, typeLabel: card.typeLabel, icon: card.icon, desc: card.desc });
+
+    const tags = [];
+    if (card) tags.push([card.type, RES_META[card.type].label]);
+    tags.push(["production", "Citoyens"]);
+    if (bonusApplied) tags.push(["culture", "+1 Culture (écriture)"]);
+
+    state.journal.unshift({
+      turn: state.turnNumber,
+      date: "Aujourd'hui",
+      text: `${card ? "Carte « " + card.titre + " » obtenue. " : ""}${prodSentence(state.draft.production)} Le Chasseur a « ${state.draft.unitActions.chasseur} », la Cueilleuse a « ${state.draft.unitActions.cueilleuse} ». Événement : ${state.draft.event.titre} (${state.draft.event.effet}).`,
+      quote: state.draft.timelineText.trim() || state.draft.eventText.trim(),
+      tags
+    });
+
+    state.turnNumber += 1;
+    state.screen = "home";
+    state.step = 1;
+    state.draft = { cardId: null, production: null, unitActions: {}, event: null, eventText: "", timelineText: "" };
+    render();
+    toast(bonusApplied ? "Tour confirmé (+1 Culture bonus d'écriture) ✅" : "Tour confirmé et ajouté au journal de bord ✅");
+  }
+
+  function prodSentence(id) {
+    if (id === "chasse") return "Le campement a amélioré une tuile de chasse.";
+    if (id === "tannage") return "Le campement a construit un site de tannage.";
+    return "Aucune production choisie ce tour.";
+  }
+
+  function renderJournal() {
+    const entries = state.journal.map(e => `
+      <div class="journal-entry">
+        <div class="jhead"><span>Tour ${e.turn} &middot; ${e.date}</span></div>
+        <p>${e.text}</p>
+        ${e.quote ? `<blockquote>« ${e.quote} »</blockquote>` : ""}
+        <div class="jtags">${e.tags.map(([k,l]) => `<span class="chip ${k}">${l}</span>`).join("")}</div>
+      </div>`).join("");
+    digitalEl.innerHTML = `<div class="awz-stage">
+      <h2 style="margin-bottom:16px;">📖 Journal de bord</h2>
+      ${entries}
+      <button class="btn btn-ghost" id="btnHome" style="margin-top:8px;">◀ Retour à la fiche</button>
+    </div>`;
+    document.getElementById("btnHome").onclick = () => { state.screen = "home"; render(); };
+  }
+
+  function renderLibrary() {
+    const cards = state.library.map(c => tradingCard(c, { owned: true })).join("");
+    digitalEl.innerHTML = `<div class="awz-stage">
+      <h2 style="margin-bottom:8px;">🗂️ Ma bibliothèque de cartes</h2>
+      <p class="awz-sub" style="margin-bottom:16px;">Seules les cartes que tu possèdes déjà apparaissent ici, avec le même visuel que les cartes imprimées &mdash; c'est aussi ta bibliothèque papier : les cartes non débloquées ne sont simplement pas encore dans ta boîte.</p>
+      <div class="trading-grid">${cards}</div>
+      <button class="btn btn-ghost" id="btnHome" style="margin-top:16px;">◀ Retour à la fiche</button>
+    </div>`;
+    document.getElementById("btnHome").onclick = () => { state.screen = "home"; render(); };
+  }
+
+  function render() {
+    if (state.screen === "home") renderHome();
+    else if (state.screen === "reveal") renderReveal();
+    else if (state.screen === "journal") renderJournal();
+    else if (state.screen === "library") renderLibrary();
+    else if (state.screen === "identite") renderIdentite();
+    else if (state.screen === "wizard") {
+      if (state.step === 1) renderStep1();
+      else if (state.step === 2) renderStep2();
+      else if (state.step === 3) renderStep3();
+      else if (state.step === 4) renderStep4();
+      else if (state.step === 5) renderStep5();
+    }
+  }
+
+  function renderPaper() {
+    paperEl.innerHTML = `
+      <div class="paper-wrap">
+        <div class="print-btn-row"><button class="btn btn-secondary" id="btnPrint">🖨️ Imprimer / Aperçu PDF</button></div>
+
+        <div class="paper-sheet">
+          <div class="paper-head">
+            <h2>Feuille de tour</h2>
+            <div class="paper-fields">
+              <span>Civilisation&nbsp;: <b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</b></span>
+              <span>Tour&nbsp;n<sup>o</sup>&nbsp;: <b>&nbsp;&nbsp;&nbsp;</b></span>
+              <span>Date&nbsp;: <b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</b></span>
+            </div>
+          </div>
+
+          <div class="econ-row">
+            ${Object.entries(RES_META).map(([k,m]) => `<div class="econ-field">${m.ic} ${m.code}<span class="econ-line"></span></div>`).join("")}
+            <div class="econ-field mood">
+              <div>
+                <div class="mood-caption">Humeur (encercle)</div>
+                <div class="mood-row">${MOODS.join(" ")}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="paper-steps">
+            <div class="paper-step">
+              <div class="pstep-title"><span class="pstep-num">1</span> Choisir une carte</div>
+              <div class="pstep-help">Regarde ta boîte de cartes débloquées seulement. Choisis-en une que tu peux payer.</div>
+              <div class="fill-line"></div>
+            </div>
+            <div class="paper-step">
+              <div class="pstep-title"><span class="pstep-num">2</span> Production de l'établissement</div>
+              <div class="pstep-help">Une seule production ou amélioration par établissement ce tour.</div>
+              <div class="fill-line"></div>
+            </div>
+            <div class="paper-step">
+              <div class="pstep-title"><span class="pstep-num">3</span> Actions des citoyens</div>
+              <div class="pstep-help">Une action par unité (déplacement ou action spéciale sur la carte).</div>
+              <div class="fill-line"></div>
+              <div class="fill-line"></div>
+            </div>
+            <div class="paper-step">
+              <div class="pstep-title"><span class="pstep-num">4</span> Carte historique</div>
+              <div class="pstep-help">Carte pigée&nbsp;: <span class="inline-blank"></span></div>
+              <div class="pstep-help" style="margin-top:2px;">Comment réagissez-vous à la carte historique pigée&nbsp;?</div>
+              <div class="fill-line"></div>
+              <div class="fill-line"></div>
+            </div>
+            <div class="paper-step">
+              <div class="pstep-title"><span class="pstep-num">5</span> Résumé — Journal de bord</div>
+              <div class="pstep-help">Écris un extrait de l'histoire de ta civilisation sur la ligne du temps ci-dessous. Un résumé riche et bien écrit vaut des points bonus!</div>
+              <div class="paper-timeline">
+                <div class="pt-line"></div>
+                <div class="pt-tick" style="left:8%"></div><div class="pt-label" style="left:8%">T3</div>
+                <div class="pt-tick" style="left:38%"></div><div class="pt-label" style="left:38%">T4</div>
+                <div class="pt-tick now" style="left:70%"></div><div class="pt-label" style="left:70%">T5</div>
+                <div class="pt-now-label" style="left:70%">▲ aujourd'hui</div>
+              </div>
+              <div class="fill-line"></div>
+              <div class="fill-line"></div>
+              <div class="fill-line"></div>
+            </div>
+          </div>
+
+          <div class="paper-footer">
+            <div>Cartes quartier/bâtiment empilées sur la carte établissement ; cartes unités dans la pile à part.</div>
+            <div class="visa-box">Visa de l'enseignant&nbsp;: <div class="fill-line" style="margin-left:0;"></div></div>
+          </div>
+        </div>
+
+        <div class="paper-sheet">
+          <div class="paper-head"><h2>Journal de bord</h2></div>
+          <table class="paper-table">
+            <thead><tr><th>Tour</th><th>Date</th><th>N&nbsp;/&nbsp;P&nbsp;/&nbsp;A&nbsp;/&nbsp;S&nbsp;/&nbsp;C gagnés</th><th>Carte / action</th><th>Résumé</th><th>Visa</th></tr></thead>
+            <tbody>
+              <tr><td>3</td><td>16 sept.</td><td>+2 S</td><td>Feu</td><td>Découverte de la Maîtrise du feu ; chasse réussie (+2 N).</td><td></td></tr>
+              <tr><td>4</td><td>18 sept.</td><td>&mdash;</td><td>&mdash;</td><td>Fondation du campement « Rive-du-Héron ».</td><td></td></tr>
+              <tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td></tr>
+              <tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="sticky-note">
+          <b>Note pour les jours sans appareils&nbsp;:</b> les élèves remplissent la Feuille de tour au crayon, dans le même ordre d'étapes que la version numérique (la Récolte du jour n'est plus une étape à part &mdash; elle est déjà inscrite en haut de la feuille). Dès qu'un appareil est disponible (ou en fin de semaine), l'enseignant reporte les tours papier dans l'outil numérique en une seule passe &mdash; exactement comme pour les points de quiz ou d'i+&nbsp;: aucune synchronisation automatique n'est nécessaire.
+        </div>
+      </div>`;
+    document.getElementById("btnPrint").onclick = () => window.print();
+  }
+
+  document.getElementById("tabDigital").onclick = () => {
+    digitalEl.style.display = ""; paperEl.style.display = "none";
+    document.getElementById("tabDigital").classList.add("active");
+    document.getElementById("tabPaper").classList.remove("active");
+    document.getElementById("tabDigital").setAttribute("aria-selected","true");
+    document.getElementById("tabPaper").setAttribute("aria-selected","false");
+  };
+  document.getElementById("tabPaper").onclick = () => {
+    digitalEl.style.display = "none"; paperEl.style.display = "";
+    document.getElementById("tabPaper").classList.add("active");
+    document.getElementById("tabDigital").classList.remove("active");
+    document.getElementById("tabPaper").setAttribute("aria-selected","true");
+    document.getElementById("tabDigital").setAttribute("aria-selected","false");
+    if (!paperEl.dataset.rendered) { renderPaper(); paperEl.dataset.rendered = "1"; }
+  };
+
+  render();
+})();
+</script>

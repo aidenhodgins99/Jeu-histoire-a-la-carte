@@ -1,0 +1,15 @@
+# dependencies (regenerated via npm install)
+node_modules/
+
+# secrets
+.env
+*.env.local
+
+# logs
+*.log
+
+# local Claude Code tool settings (machine-specific, not project source)
+.claude/settings.local.json
+
+# regenerable card-generator output (large, rebuildable from cartes/*.csv + generate_cards.js)
+card-generator/output/

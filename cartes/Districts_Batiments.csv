@@ -1,0 +1,11 @@
+Type,Nom,Quartier_parent,Débloqué_par,Coût_Production,Effet,Palier_établissement_minimum,Ère_de_déblocage,Statut_image
+District,Site saint,—,Spiritualité,4,Génère de la Culture et de la Foi/Croyance ; requis pour jouer des cartes croyance avancées.,Campement (palier 1),Paléolithique,À intégrer
+Bâtiment,Autel,Site saint,Spiritualité,3,Bonus de Culture et de Bonheur.,Campement (palier 1),Paléolithique,À intégrer
+District,Campus,—,Écriture,6,Génère de la Science ; requis pour certaines cartes scientifiques avancées.,Village (palier 2),Néolithique (fin),À intégrer
+Bâtiment,Bibliothèque,Campus,Écriture,5,Bonus de Science.,Village (palier 2),Néolithique (fin),À intégrer
+District,Complexe culturel,—,"À déterminer (Chapitre 2 ou 3, ex. Écriture avancée / Mythologie)",—,Génère de la Culture ; requis pour certaines cartes culturelles avancées.,Village (palier 2),À déterminer (postérieur à l'Ère 1),À intégrer
+District,Zone commerciale,—,"À déterminer (probablement Troc et réseaux d'échange ou un nœud du Chapitre 2)",—,Génère de l'Argent.,Village (palier 2),À déterminer (probablement fin Néolithique ou Chapitre 2),À intégrer
+District,Port,—,Navigation marine,5,"Génère de l'Argent et de la Nourriture ; ne peut être construit que sur une tuile côtière ou fluviale.",Campement (palier 1),Paléolithique,À intégrer
+District,Zone industrielle,—,"À déterminer (Chapitre 2 ou 3, ex. métallurgie avancée)",—,Génère de la Production.,Bourg (palier 3),À déterminer (postérieur à l'Ère 1),À intégrer
+District,Fort / Base militaire,—,"À déterminer (probablement Travail du bronze ou un nœud du Chapitre 2)",—,"Défense uniquement — coûte de l'Argent en entretien, ne produit AUCUN rendement économique (décision confirmée : les forts ne doivent pas être rentables).",Campement (palier 1),À déterminer,À intégrer
+District,Complexe de divertissement,—,"À déterminer (Antiquité classique, ex. Théâtre / Jeux publics — Chapitre 3)",—,Génère du Bonheur et de la Culture.,Village (palier 2),Antiquité classique (Chapitre 3) — hors Ère 1,À intégrer
