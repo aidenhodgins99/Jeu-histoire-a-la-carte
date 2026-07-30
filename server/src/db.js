@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS classes (
   name TEXT NOT NULL,
   join_code TEXT UNIQUE NOT NULL,
   teacher_passcode_hash TEXT NOT NULL,
-  turns_unlocked INTEGER NOT NULL DEFAULT 999999, -- unrestricted by default; a teacher opts INTO pacing a class
+  turns_unlocked INTEGER NOT NULL DEFAULT 1, -- capped from the start; the teacher advances this as students complete work
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -47,7 +47,11 @@ CREATE TABLE IF NOT EXISTS civilizations (
 );
 
 -- Additive migrations for columns introduced after the tables first shipped.
-ALTER TABLE classes ADD COLUMN IF NOT EXISTS turns_unlocked INTEGER NOT NULL DEFAULT 999999;
+-- ADD COLUMN IF NOT EXISTS is a no-op once the column already exists, so a
+-- later default-value change (like the 999999 -> 1 turn-pacing default) needs
+-- its own explicit ALTER COLUMN to actually take effect on existing databases.
+ALTER TABLE classes ADD COLUMN IF NOT EXISTS turns_unlocked INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE classes ALTER COLUMN turns_unlocked SET DEFAULT 1;
 ALTER TABLE civilizations ADD COLUMN IF NOT EXISTS turn_state JSONB NOT NULL DEFAULT '{}';
 `;
 

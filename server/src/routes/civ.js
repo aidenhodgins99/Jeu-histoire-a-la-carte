@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { pool } from "../db.js";
-import { getCivById, onboardCiv, civViewModel, buyCard, produce, harvest, HARVEST_TASKS, httpError, rowToCiv } from "../civ.js";
+import { getCivById, onboardCiv, civViewModel, buyCard, produce, HARVEST_TASKS, httpError, rowToCiv } from "../civ.js";
 import { availableActions, runUnitAction } from "../actions.js";
 import { scriptedEventForTurn } from "../events.js";
 import { yearForTurn, epochForYear, formatYear } from "../turns.js";
@@ -100,18 +100,10 @@ router.post("/me/units/action", async (req, res, next) => {
   }
 });
 
+// Informational only — students see what earns resources, but recording that
+// work as done is a teacher action (see routes/teacher.js POST /civ/:id/harvest).
 router.get("/me/harvest-tasks", (req, res) => {
   res.json({ tasks: HARVEST_TASKS });
-});
-
-router.post("/me/harvest", async (req, res, next) => {
-  try {
-    const { completed } = req.body || {};
-    const { civ, gains } = await harvest(req.civId, completed);
-    res.json({ ...civViewModel(civ), gains });
-  } catch (err) {
-    next(err);
-  }
 });
 
 router.get("/me/turn", async (req, res, next) => {

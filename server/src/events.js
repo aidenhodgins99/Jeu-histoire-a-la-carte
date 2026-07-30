@@ -2,6 +2,15 @@
 // Each event is grounded in Cartes_Historiques_Era1.csv where a matching row
 // exists; turn 4 (the second Neanderthal encounter / war-or-peace branch) is new
 // content authored to extend that file's turn-by-turn narrative.
+//
+// Descriptions are written as history for students to read, not as design
+// notes — the CSV's "Effet" column is a mechanical note for building the game
+// (see Cartes_Historiques_Era1.csv) and must never be surfaced as-is; the
+// "Lien_PDA" column is what actually carries grounded historical context.
+//
+// Judgment events (turn 3, turn 7) deliberately carry no automatic effect:
+// the student writes a real decision, and Aiden reads it and assigns a bonus
+// or penalty afterward through the teacher dashboard — not a formula.
 import { loadContent } from "./content.js";
 
 function findEvent(titleContains) {
@@ -30,7 +39,8 @@ export function scriptedEventForTurn(turn, civId) {
         id: "turn1_glaciation",
         turn,
         title: e.title,
-        description: e.effect,
+        description:
+          "Le climat se refroidit brutalement. Les glaciers avancent, le gibier se fait plus rare, et ton clan doit sans cesse s'adapter aux caprices du climat pour survivre.",
         requiresText: false,
         effect: { resourceDelta: { nourriture: -1 } },
       };
@@ -55,10 +65,11 @@ export function scriptedEventForTurn(turn, civId) {
         id: "turn3_neandertal",
         turn,
         title: e.title,
-        description: e.effect,
+        description:
+          "Ton clan croise un groupe de Homo neanderthalensis — une autre espèce humaine qui vit alors aux côtés de la tienne. Les sociétés du Paléolithique ne sont pas uniformes : plusieurs groupes humains coexistent, parfois dans une même région.",
         requiresText: true,
-        textPrompt: "Comment ton clan réagit-il à cette première rencontre avec un autre groupe humain ?",
-        effect: { resourceDelta: { science: 1 } },
+        textPrompt: "Comment ton clan réagit-il à cette première rencontre avec un autre groupe humain ? Explique votre décision.",
+        effect: { resourceDelta: {} },
       };
     }
     case 4:
@@ -91,7 +102,8 @@ export function scriptedEventForTurn(turn, civId) {
         id: "turn5_rechauffement",
         turn,
         title: e.title,
-        description: e.effect,
+        description:
+          "Le climat de la Terre se réchauffe. Le gibier, le poisson et les graminées sauvages deviennent plus abondants — nul besoin de nomadiser sans cesse pour trouver de quoi se nourrir.",
         requiresText: false,
         effect: { resourceDelta: { nourriture: 2 } },
       };
@@ -102,7 +114,8 @@ export function scriptedEventForTurn(turn, civId) {
         id: "turn6_obsidienne",
         turn,
         title: e.title,
-        description: e.effect,
+        description:
+          "En explorant un relief montagneux, ton clan découvre un gisement d'obsidienne — une roche volcanique très tranchante, prisée pour fabriquer outils et armes.",
         requiresText: false,
         effect: { resourceDelta: { production: 2 } },
       };
@@ -113,10 +126,11 @@ export function scriptedEventForTurn(turn, civId) {
         id: "turn7_propriete",
         turn,
         title: e.title,
-        description: e.effect,
+        description:
+          "Ta civilisation améliore un premier lopin de terre — un champ, un pâturage, une mine. Une question nouvelle se pose alors à ton clan : à qui appartient cette terre, et ce qu'elle produit ?",
         requiresText: true,
         textPrompt: "À qui appartient la terre que ta civilisation cultive, selon toi ? Explique ta réponse.",
-        effect: { resourceDelta: { culture: 1 } },
+        effect: { resourceDelta: {} },
       };
     }
     case 8: {
@@ -125,10 +139,11 @@ export function scriptedEventForTurn(turn, civId) {
         id: "turn8_hierarchie",
         turn,
         title: e.title,
-        description: e.effect,
+        description:
+          "Dans certains villages néolithiques, comme à Varna, en Bulgarie, on retrouve des sépultures accompagnées d'objets précieux — un signe qu'une hiérarchie sociale commence à apparaître entre les membres de la communauté.",
         requiresText: true,
         textPrompt:
-          "Une hiérarchie sociale commence à apparaître dans certains villages néolithiques (voir l'exemple de Varna, en Bulgarie). Qu'en penses-tu pour ta propre civilisation ?",
+          "Une hiérarchie sociale commence à apparaître. Qu'en penses-tu pour ta propre civilisation ?",
         effect: { resourceDelta: {} },
       };
     }

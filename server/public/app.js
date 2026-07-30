@@ -49,16 +49,38 @@
     return data;
   }
 
+  // A frame-shaped card image forced into object-fit:cover can crop badly
+  // when the photo's aspect ratio doesn't match the frame (e.g. a near-square
+  // artifact photo losing its top/bottom in a wide card frame) — the same
+  // problem already solved for the print pipeline (card-generator/generate_cards.js
+  // chooseObjectFit), reimplemented here client-side since Render has no
+  // ImageMagick to precompute it server-side.
+  function applySmartObjectFit(imgEl) {
+    const decide = () => {
+      const frame = imgEl.parentElement;
+      if (!frame || !imgEl.naturalWidth || !imgEl.naturalHeight) return;
+      const frameAspect = frame.clientWidth / frame.clientHeight;
+      const imgAspect = imgEl.naturalWidth / imgEl.naturalHeight;
+      imgEl.style.objectFit = imgAspect >= frameAspect ? "cover" : "contain";
+    };
+    if (imgEl.complete && imgEl.naturalWidth) decide();
+    else imgEl.addEventListener("load", decide, { once: true });
+  }
+  new MutationObserver(() => {
+    appEl.querySelectorAll("img:not([data-fit-done])").forEach((img) => {
+      img.dataset.fitDone = "1";
+      applySmartObjectFit(img);
+    });
+  }).observe(appEl, { childList: true, subtree: true });
+
   // ---------------- App state ----------------
   let vm = null; // last civViewModel from the server
-  let screen = "loading"; // loading | join | onboard | home | harvest | wizard | journal | library
+  let screen = "loading"; // loading | join | onboard | home | wizard | journal | library
   let step = 1;
   let wizard = { actedUnitIds: new Set(), selectedTileIndex: null, selectedUnitId: null, moveMode: false, eventChoiceKey: null, eventText: "", producedThisTurn: false };
   let turnInfo = null;
   let joinError = "";
   let onboardError = "";
-  let harvestTasks = null;
-  let harvestChecked = new Set();
   let pendingCardReveal = null; // a just-bought card, shown once before returning to the grid
 
   function resKey(cardType) { return cardType === "science" ? "science" : "culture"; }
@@ -239,12 +261,21 @@
   }
 
   // ---------------- Home ----------------
+  // Two independent gates before a student can start a turn: canPlay (the
+  // teacher hasn't opened this turn class-wide yet) and harvestClaimed (the
+  // teacher hasn't recorded this student's completed schoolwork yet — that's
+  // a teacher action now, not student self-report, see routes/teacher.js).
   async function renderHome() {
     if (!turnInfo) turnInfo = await api("/api/civ/me/turn");
     const govCard = vm.ownedCardDetails.find((c) => c.id === "chefferie" || c.id === "vie_tribale");
-    const playButton = turnInfo.canPlay
-      ? '<button class="btn btn-primary" id="btnStart">▶ Jouer mon tour</button>'
-      : `<div class="locked-note"><span class="lic">⏳</span>Ce tour n'est pas encore débloqué par ton enseignant.<br/>Reviens à la prochaine période de classe !</div>`;
+    let playButton;
+    if (!turnInfo.canPlay) {
+      playButton = `<div class="locked-note"><span class="lic">⏳</span>Ce tour n'est pas encore débloqué par ton enseignant.<br/>Reviens à la prochaine période de classe !</div>`;
+    } else if (!turnInfo.harvestClaimed) {
+      playButton = `<div class="locked-note"><span class="lic">📝</span>Fais tes travaux (quiz, cahier, i+, travail additionnel…) pour rapporter des ressources et des points à ta civilisation.<br/>Ton enseignant les comptabilisera avant de débloquer ton prochain tour.</div>`;
+    } else {
+      playButton = '<button class="btn btn-primary" id="btnStart">▶ Jouer mon tour</button>';
+    }
     appEl.innerHTML = `<div class="awz-stage">
       <div class="awz-home-head">
         <h1>${vm.civ.civName}</h1>
@@ -265,78 +296,13 @@
     const startBtn = document.getElementById("btnStart");
     if (startBtn) startBtn.onclick = async () => {
       wizard = { actedUnitIds: new Set(), selectedTileIndex: null, selectedUnitId: null, moveMode: false, eventChoiceKey: null, eventText: "", producedThisTurn: false };
-      if (turnInfo.harvestClaimed) {
-        step = 1;
-        screen = "wizard";
-      } else {
-        screen = "harvest";
-      }
+      step = 1;
+      screen = "wizard";
       render();
     };
     document.getElementById("btnJournal").onclick = () => { screen = "journal"; render(); };
     document.getElementById("btnLibrary").onclick = () => { screen = "library"; render(); };
     document.getElementById("btnTutorial").onclick = () => showTutorial();
-  }
-
-  // ---------------- Récolte du jour ----------------
-  async function renderHarvest() {
-    if (!harvestTasks) {
-      const res = await api("/api/civ/me/harvest-tasks");
-      harvestTasks = res.tasks;
-    }
-    const itemsHtml = harvestTasks.map((t) => {
-      const checked = harvestChecked.has(t.key);
-      return `<button class="harvest-item ${checked ? "checked" : ""}" data-key="${t.key}">
-        <span class="hcheck">${checked ? "✓" : ""}</span>
-        <span class="hlabel">${t.label}</span>
-        <span class="chip ${t.resKey}"><span class="ic">${RES_META[t.resKey].ic}</span>+${t.amount}</span>
-      </button>`;
-    }).join("");
-    appEl.innerHTML = `<div class="awz-stage">
-      <div class="step-eyebrow">Avant de commencer</div>
-      <h2 class="step-title">Récolte du jour</h2>
-      <p class="step-help">Coche le travail que tu as complété depuis le dernier tour — chaque tâche rapporte des points à ta civilisation.</p>
-      <div class="harvest-list">${itemsHtml}</div>
-      <button class="btn btn-primary" id="btnHarvest">🌾 Récolter</button>
-    </div>`;
-    appEl.querySelectorAll(".harvest-item").forEach((btn) => {
-      btn.onclick = () => {
-        const key = btn.dataset.key;
-        if (harvestChecked.has(key)) harvestChecked.delete(key); else harvestChecked.add(key);
-        renderHarvest();
-      };
-    });
-    document.getElementById("btnHarvest").onclick = async () => {
-      try {
-        const result = await api("/api/civ/me/harvest", { method: "POST", body: { completed: Array.from(harvestChecked) } });
-        vm = { ...vm, civ: result.civ, discoverableCards: result.discoverableCards, unlockedUnits: result.unlockedUnits, unlockedDistricts: result.unlockedDistricts, ownedCardDetails: result.ownedCardDetails, content: result.content };
-        turnInfo = { ...turnInfo, harvestClaimed: true };
-        renderHarvestReveal(result.gains);
-      } catch (e) {
-        toast(e.message);
-      }
-    };
-  }
-
-  function renderHarvestReveal(gains) {
-    const entries = Object.entries(gains || {});
-    const summary = entries.length
-      ? entries.map(([k, v]) => `<div class="reveal-amount">+${v} <span style="font-size:20px;">${RES_META[k].ic}</span> ${RES_META[k].label}</div>`).join("")
-      : `<p class="reveal-label">Aucune tâche cochée — la récolte de ce tour est vide.</p>`;
-    appEl.innerHTML = `<div class="awz-stage">
-      <div class="reveal-card">
-        <span class="reveal-icon">🌾</span>
-        <div class="reveal-title">Récolte du jour</div>
-        ${summary}
-      </div>
-      <button class="btn btn-primary" id="btnRevealNext">Continuer vers mon tour ▶</button>
-    </div>`;
-    document.getElementById("btnRevealNext").onclick = () => {
-      harvestChecked = new Set();
-      step = 1;
-      screen = "wizard";
-      render();
-    };
   }
 
   // ---------------- Wizard step 1: choisir une carte ----------------
@@ -456,8 +422,7 @@
         const selected = wizard.selectedUnitId === u.id;
         const acted = wizard.actedUnitIds.has(u.id) || (vm.civ.turnState.actedUnitIds || []).includes(u.id);
         const unitDef = uMap[u.type];
-        const img = unitDef?.imageUrl ? `background-image:url('${unitDef.imageUrl}');` : "";
-        return `<div class="unit-token ${selected ? "selected" : ""}" style="${img}" data-unit="${u.id}" data-tile="${tile.index}" title="${u.type}${acted ? " (a agi)" : ""}">${unitDef?.imageUrl ? "" : (UNIT_ICONS[u.type] || "👤")}</div>`;
+        return `<div class="unit-token ${selected ? "selected" : ""}" data-unit="${u.id}" data-tile="${tile.index}" title="${unitDef?.title || u.type}${acted ? " (a agi)" : ""}">${imgOrEmoji(unitDef?.imageUrl, UNIT_ICONS[u.type] || "👤", unitDef?.title)}</div>`;
       }).join("");
       const resDef = tile.resource ? rMap[tile.resource.id] : null;
       const resourceBadge = resDef
@@ -641,7 +606,6 @@
     if (screen === "onboard") return renderOnboard();
     if (screen === "journal") return renderJournal();
     if (screen === "library") return renderLibrary();
-    if (screen === "harvest") return renderHarvest();
     if (screen === "home") {
       await renderHome();
       if (!vm.civ.tutorialSeen) {

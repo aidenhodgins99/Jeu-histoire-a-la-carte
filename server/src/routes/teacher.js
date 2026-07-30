@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { pool } from "../db.js";
-import { getCivById, civViewModel, rowToCiv, httpError } from "../civ.js";
+import { getCivById, civViewModel, rowToCiv, httpError, harvest, HARVEST_TASKS } from "../civ.js";
 import { cardById } from "../content.js";
 
 const router = Router();
@@ -33,8 +33,8 @@ router.get("/class", async (req, res, next) => {
 });
 
 // Turn-pacing control: how many turns the whole class may currently play.
-// Defaults to effectively unlimited (999999) when a class is created, so this
-// only restricts pacing once a teacher deliberately sets a lower value.
+// Capped at 1 from the moment a class is created — students can't outrun the
+// lesson plan by default, the teacher explicitly advances this.
 router.post("/class/turns-unlocked", async (req, res, next) => {
   try {
     const turnsUnlocked = Number(req.body?.turnsUnlocked);
@@ -90,6 +90,25 @@ router.post("/civ/:civId/grant", async (req, res, next) => {
       [civ.id, JSON.stringify(resources), JSON.stringify(ownedCards), bonheurIndex]
     );
     res.json(civViewModel(rowToCiv(rows[0])));
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Récolte du jour is teacher-input, not student self-report: the teacher marks
+// which schoolwork (quiz, cahier, i+, travail additionnel) a student actually
+// completed, and the corresponding resources are credited once per turn.
+router.get("/harvest-tasks", (req, res) => {
+  res.json({ tasks: HARVEST_TASKS });
+});
+
+router.post("/civ/:civId/harvest", async (req, res, next) => {
+  try {
+    const civ = await getCivById(req.params.civId);
+    if (!civ || civ.classId !== req.classId) throw httpError(404, "Civilisation introuvable dans cette classe.");
+    const { completed } = req.body || {};
+    const result = await harvest(req.params.civId, completed);
+    res.json({ ...civViewModel(result.civ), gains: result.gains });
   } catch (err) {
     next(err);
   }
