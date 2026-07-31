@@ -156,6 +156,7 @@ export function loadContent({ force = false } = {}) {
     effect: r.Effet,
     pdaLink: r["Lien_PDA"],
     source: r["Source_citation"],
+    imageUrl: findImageUrl(r.Titre),
   }));
 
   // Map resources: "Statique" sit on the starting map from turn 1 (Pierre,

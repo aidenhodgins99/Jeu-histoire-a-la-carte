@@ -41,6 +41,7 @@ export function scriptedEventForTurn(turn, civId) {
         title: e.title,
         description:
           "Le climat se refroidit brutalement. Les glaciers avancent, le gibier se fait plus rare, et ton clan doit sans cesse s'adapter aux caprices du climat pour survivre.",
+        imageUrl: e.imageUrl,
         requiresText: false,
         effect: { resourceDelta: { nourriture: -1 } },
       };
@@ -54,6 +55,7 @@ export function scriptedEventForTurn(turn, civId) {
         turn,
         title: e.title,
         description: `Un troupeau de ${chosen.title.toLowerCase()} traverse votre territoire et apparaît sur la carte — chasse-le avant qu'il ne reparte !`,
+        imageUrl: chosen.imageUrl,
         requiresText: false,
         spawnsFauna: chosen.id,
         effect: { resourceDelta: {} },
@@ -67,6 +69,7 @@ export function scriptedEventForTurn(turn, civId) {
         title: e.title,
         description:
           "Ton clan croise un groupe de Homo neanderthalensis — une autre espèce humaine qui vit alors aux côtés de la tienne. Les sociétés du Paléolithique ne sont pas uniformes : plusieurs groupes humains coexistent, parfois dans une même région.",
+        imageUrl: e.imageUrl,
         requiresText: true,
         textPrompt: "Comment ton clan réagit-il à cette première rencontre avec un autre groupe humain ? Explique votre décision.",
         effect: { resourceDelta: {} },
@@ -79,6 +82,7 @@ export function scriptedEventForTurn(turn, civId) {
         title: "Un second contact avec les Néandertaliens",
         description:
           "Votre groupe croise à nouveau une bande de Néandertaliens. L'ADN des humains actuels montre que les deux groupes se sont parfois mélangés et parfois affrontés, selon les régions et les époques — les deux issues sont attestées.",
+        imageUrl: findEvent("Rencontre de Homo neanderthalensis").imageUrl,
         requiresText: false,
         choice: {
           prompt: "Comment votre civilisation choisit-elle d'agir ?",
@@ -104,6 +108,7 @@ export function scriptedEventForTurn(turn, civId) {
         title: e.title,
         description:
           "Le climat de la Terre se réchauffe. Le gibier, le poisson et les graminées sauvages deviennent plus abondants — nul besoin de nomadiser sans cesse pour trouver de quoi se nourrir.",
+        imageUrl: e.imageUrl,
         requiresText: false,
         effect: { resourceDelta: { nourriture: 2 } },
       };
@@ -116,6 +121,7 @@ export function scriptedEventForTurn(turn, civId) {
         title: e.title,
         description:
           "En explorant un relief montagneux, ton clan découvre un gisement d'obsidienne — une roche volcanique très tranchante, prisée pour fabriquer outils et armes.",
+        imageUrl: e.imageUrl,
         requiresText: false,
         effect: { resourceDelta: { production: 2 } },
       };
@@ -128,6 +134,7 @@ export function scriptedEventForTurn(turn, civId) {
         title: e.title,
         description:
           "Ta civilisation améliore un premier lopin de terre — un champ, un pâturage, une mine. Une question nouvelle se pose alors à ton clan : à qui appartient cette terre, et ce qu'elle produit ?",
+        imageUrl: e.imageUrl,
         requiresText: true,
         textPrompt: "À qui appartient la terre que ta civilisation cultive, selon toi ? Explique ta réponse.",
         effect: { resourceDelta: {} },
@@ -141,6 +148,7 @@ export function scriptedEventForTurn(turn, civId) {
         title: e.title,
         description:
           "Dans certains villages néolithiques, comme à Varna, en Bulgarie, on retrouve des sépultures accompagnées d'objets précieux — un signe qu'une hiérarchie sociale commence à apparaître entre les membres de la communauté.",
+        imageUrl: e.imageUrl,
         requiresText: true,
         textPrompt:
           "Une hiérarchie sociale commence à apparaître. Qu'en penses-tu pour ta propre civilisation ?",

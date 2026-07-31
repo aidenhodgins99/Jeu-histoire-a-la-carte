@@ -375,6 +375,7 @@
     const optHtml = options.map((o) => {
       const locked = done || o.cost > bal[o.resKey];
       return `<button class="pick-card ${locked ? "locked" : ""}" data-kind="${o.kind}" data-id="${o.id}" ${locked ? "disabled" : ""}>
+        ${o.imageUrl ? `<div class="pick-thumb"><img src="${o.imageUrl}" alt="${o.label}" /></div>` : ""}
         <span class="ptitle">${o.label}</span>
         <span class="pdesc">${o.effet || ""}</span>
         <span class="pick-cost chip ${o.resKey}">${RES_META[o.resKey].ic} ${o.cost}</span>
@@ -524,6 +525,7 @@
       <div class="step-eyebrow">Étape 4 / 5</div>
       <h2 class="step-title">Carte historique</h2>
       <div class="event-card">
+        ${ev.imageUrl ? `<img class="reveal-img" src="${ev.imageUrl}" alt="${ev.title}" />` : ""}
         <h3>${ev.title}</h3>
         <p>${ev.description}</p>
         ${choiceHtml}
