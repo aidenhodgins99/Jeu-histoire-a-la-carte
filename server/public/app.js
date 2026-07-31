@@ -187,6 +187,7 @@
       <input class="field-input" id="studentName" placeholder="Ex. Camille T." autocomplete="off" />
       ${joinError ? `<div class="awz-error">${joinError}</div>` : ""}
       <button class="btn btn-primary" id="btnJoin">▶ Rejoindre</button>
+      <p class="awz-sub" style="margin-top:16px; text-align:center;">Tu es l'enseignant·e ? <a href="/teacher.html">Accède au tableau de bord</a></p>
     </div>`;
     document.getElementById("btnJoin").onclick = async () => {
       const code = document.getElementById("joinCode").value.trim();

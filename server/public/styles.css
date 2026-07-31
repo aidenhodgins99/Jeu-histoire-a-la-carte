@@ -406,7 +406,47 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 600; text-wrap: balance; ma
 .journal-entry p { margin: 0; font-size: 14px; line-height: 1.5; }
 .journal-entry blockquote { margin: 6px 0 0; padding-left: 10px; border-left: 2px solid var(--line); font-style: italic; font-size: 13.5px; color: var(--charcoal-soft); }
 
+/* ================= NOUVEAU : tableau de bord enseignant ================= */
+.teacher-tabs { display: inline-flex; background: var(--parchment-soft); border: 1px solid var(--line); border-radius: 999px; padding: 3px; gap: 2px; margin-bottom: 18px; }
+.teacher-tabs button { font-family: var(--sans); font-size: 13px; font-weight: 600; border: none; background: transparent; color: var(--charcoal-soft); padding: 8px 16px; border-radius: 999px; cursor: pointer; }
+.teacher-tabs button.active { background: var(--ochre); color: #fff; }
+
+.class-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+.join-code-display { font-family: var(--serif); font-size: 28px; font-weight: 700; letter-spacing: 0.08em; color: var(--ochre-dark); background: var(--parchment-soft); border: 1px dashed var(--line); border-radius: 10px; padding: 8px 16px; display: inline-block; }
+.join-code-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--charcoal-soft); font-weight: 700; margin-bottom: 4px; }
+
+.pace-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: var(--parchment-soft); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-bottom: 18px; }
+.pace-row b { font-family: var(--serif); font-size: 15px; }
+.pace-row .field-input { width: 70px; margin-bottom: 0; padding: 8px 10px; }
+
+.roster-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.roster-table th, .roster-table td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.roster-table th { font-family: var(--serif); font-weight: 700; color: var(--charcoal-soft); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+.roster-table tr:hover td { background: var(--parchment-soft); }
+.roster-table .rname { font-weight: 700; }
+.roster-table .rmini { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+.roster-table .rmini span { font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.badge { display: inline-block; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+.badge.yes { background: color-mix(in srgb, var(--verdigris) 20%, transparent); color: var(--verdigris); }
+.badge.no { background: color-mix(in srgb, var(--ochre) 18%, transparent); color: var(--ochre-dark); }
+
+.section-title { font-family: var(--serif); font-size: 16px; font-weight: 700; margin: 22px 0 10px; padding-top: 14px; border-top: 1px solid var(--line); }
+.section-title:first-of-type { margin-top: 0; padding-top: 0; border-top: none; }
+
+.stepper-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.stepper-row .slabel { min-width: 90px; font-size: 13px; font-weight: 700; }
+.stepper { display: inline-flex; align-items: center; gap: 6px; }
+.stepper button { width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--line); background: var(--parchment-soft); color: var(--charcoal); font-weight: 800; font-size: 15px; cursor: pointer; }
+.stepper button:hover { border-color: var(--ochre); }
+.stepper .sval { min-width: 24px; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.owned-mini-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+.owned-mini-grid span { font-size: 11.5px; padding: 4px 9px; border-radius: 999px; background: var(--parchment-soft); border: 1px solid var(--line); }
+
+.select-input { width: 100%; font-family: var(--sans); font-size: 14px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--parchment-soft); color: var(--charcoal); margin-bottom: 10px; }
+
 /* ================= responsive ================= */
 @media (max-width: 480px) {
   .awz-stage { padding: 22px 16px 26px; border-radius: 14px; }
+  .roster-table { display: block; overflow-x: auto; }
 }

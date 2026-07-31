@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { pool } from "../db.js";
 import { getCivById, civViewModel, rowToCiv, httpError, harvest, HARVEST_TASKS } from "../civ.js";
-import { cardById } from "../content.js";
+import { cardById, allCards } from "../content.js";
 
 const router = Router();
 
@@ -14,6 +14,12 @@ function requireTeacherSession(req, res, next) {
 
 router.use(requireTeacherSession);
 
+// Full catalog for the grant form — unlike the student's discoverableCards,
+// a teacher override can grant any card regardless of prerequisites.
+router.get("/cards", (req, res) => {
+  res.json({ cards: allCards().map((c) => ({ id: c.id, title: c.title, type: c.type })) });
+});
+
 router.get("/class", async (req, res, next) => {
   try {
     const { rows: classRows } = await pool.query(
@@ -22,11 +28,12 @@ router.get("/class", async (req, res, next) => {
     );
     if (!classRows[0]) throw httpError(404, "Classe introuvable.");
     const { rows } = await pool.query(
-      `SELECT id, student_name, civ_name, turn_number, resources, bonheur_index, onboarded
+      `SELECT id, student_name, civ_name, turn_number, resources, bonheur_index, onboarded, turn_state
        FROM civilizations WHERE class_id = $1 ORDER BY student_name`,
       [req.classId]
     );
-    res.json({ class: classRows[0], roster: rows });
+    const roster = rows.map((r) => ({ ...r, harvest_claimed: !!r.turn_state?.harvestClaimed }));
+    res.json({ class: classRows[0], roster });
   } catch (err) {
     next(err);
   }
