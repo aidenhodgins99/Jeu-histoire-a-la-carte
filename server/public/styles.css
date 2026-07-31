@@ -341,14 +341,14 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 600; text-wrap: balance; ma
   font-size: 9.5px; font-weight: 700; background: rgba(20,16,10,0.62); color: #fff;
   padding: 2px 6px; border-radius: 999px; text-align: center; line-height: 1.3;
 }
-.map-tile .tile-units { position: absolute; top: 5px; left: 5px; display: flex; gap: 4px; flex-wrap: wrap; }
+.map-tile .tile-units { position: absolute; top: 4px; left: 4px; display: flex; gap: 4px; flex-wrap: wrap; }
 .map-tile .unit-token {
-  width: 36px; aspect-ratio: 63 / 88; height: auto; border-radius: 5px;
+  width: 52px; aspect-ratio: 63 / 88; height: auto; border-radius: 6px;
   background: var(--parchment-soft); color: var(--charcoal);
-  display: flex; align-items: center; justify-content: center; font-size: 17px;
-  border: 2px solid var(--parchment-soft); box-shadow: 0 1px 3px rgba(20,16,10,0.45);
+  display: flex; align-items: center; justify-content: center; font-size: 24px;
+  border: 2px solid var(--parchment-soft); box-shadow: 0 2px 4px rgba(20,16,10,0.45);
 }
-.map-tile .unit-token.selected { border-color: var(--ochre); box-shadow: 0 0 0 2px var(--ochre); }
+.map-tile .unit-token.selected { border-color: var(--ochre); box-shadow: 0 0 0 2.5px var(--ochre); }
 .map-legend { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 16px; font-size: 11px; color: var(--charcoal-soft); }
 .tile-resource {
   position: absolute; bottom: 5px; right: 5px; width: 26px; height: 26px; border-radius: 50%;
@@ -363,7 +363,7 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 600; text-wrap: balance; ma
 .tc-frame img { width: 100%; height: 100%; object-fit: cover; border-radius: 7px; }
 .map-tile { background-size: cover; background-position: center; }
 .unit-token { background-size: cover; background-position: center; overflow: hidden; }
-.unit-token img { width: 100%; height: 100%; object-fit: cover; border-radius: 4px; }
+.unit-token img { width: 100%; height: 100%; object-fit: cover; border-radius: 5px; }
 
 /* ---------- Reveal (récolte du jour, découverte de carte) ---------- */
 .reveal-progress { display: flex; gap: 6px; justify-content: center; margin-bottom: 18px; }

@@ -90,9 +90,10 @@ router.post("/me/units/action", async (req, res, next) => {
     const { tileIndex, unitId, actionKey, targetIndex } = req.body || {};
     const result = runUnitAction({ civ, tileIndex, unitId, actionKey, targetIndex });
     const newTurnState = { ...civ.turnState, actedUnitIds: [...(civ.turnState.actedUnitIds || []), result.actedUnitId] };
+    const newBonheur = Math.max(0, Math.min(4, civ.bonheurIndex + (result.bonheurDelta || 0)));
     const { rows } = await pool.query(
-      "UPDATE civilizations SET map = $2, resources = $3, turn_state = $4, updated_at = now() WHERE id = $1 RETURNING *",
-      [req.civId, JSON.stringify(result.map), JSON.stringify(result.resources), JSON.stringify(newTurnState)]
+      "UPDATE civilizations SET map = $2, resources = $3, turn_state = $4, bonheur_index = $5, updated_at = now() WHERE id = $1 RETURNING *",
+      [req.civId, JSON.stringify(result.map), JSON.stringify(result.resources), JSON.stringify(newTurnState), newBonheur]
     );
     res.json({ ...civViewModel(rowToCiv(rows[0])), resourceBonusMessage: result.resourceBonusMessage });
   } catch (err) {

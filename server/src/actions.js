@@ -106,6 +106,7 @@ export function runUnitAction({ civ, tileIndex, unitId, actionKey, targetIndex }
   let resources = result.resources || civ.resources;
   let tilePatch = result.tilePatch || {};
   let resourceBonusMessage = null;
+  let bonheurDelta = 0;
 
   // Pierre/Épices reward whichever action works their tile; fauna (Mammouths,
   // Loups...) only rewards Chasse specifically, and disappears once hunted.
@@ -115,8 +116,19 @@ export function runUnitAction({ civ, tileIndex, unitId, actionKey, targetIndex }
       const isStaticBonus = tile.resource.kind === "statique";
       const isFaunaHunt = tile.resource.kind === "faune" && actionKey === "chasse";
       if (isStaticBonus || isFaunaHunt) {
-        resources = { ...resources, [resDef.bonusResKey]: (resources[resDef.bonusResKey] ?? 0) + resDef.bonusAmount };
-        resourceBonusMessage = `+${resDef.bonusAmount} grâce à : ${resDef.title}`;
+        // Épices is a trade good: there's no currency to speak of before
+        // Troc et réseaux d'échange is discovered, so raw spices just make
+        // the clan happy. Once trade exists, the same tile starts paying out
+        // in Argent — it's now something worth exchanging.
+        const preTrade = resDef.id === "epices" && !civ.ownedCards.includes("troc_echange");
+        const bonusKey = preTrade ? "bonheur" : resDef.bonusResKey;
+        if (bonusKey === "bonheur") {
+          bonheurDelta += resDef.bonusAmount;
+          resourceBonusMessage = `+${resDef.bonusAmount} 😀 Bonheur grâce à : ${resDef.title}`;
+        } else {
+          resources = { ...resources, [bonusKey]: (resources[bonusKey] ?? 0) + resDef.bonusAmount };
+          resourceBonusMessage = `+${resDef.bonusAmount} grâce à : ${resDef.title}`;
+        }
         if (isFaunaHunt) tilePatch = { ...tilePatch, resource: null };
       }
     }
@@ -125,5 +137,5 @@ export function runUnitAction({ civ, tileIndex, unitId, actionKey, targetIndex }
   const newMap = civ.map.map((t, i) =>
     i === Number(tileIndex) && Object.keys(tilePatch).length ? { ...t, ...tilePatch } : t
   );
-  return { map: newMap, resources, actedUnitId: unitId, resourceBonusMessage };
+  return { map: newMap, resources, actedUnitId: unitId, resourceBonusMessage, bonheurDelta };
 }
